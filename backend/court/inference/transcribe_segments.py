@@ -58,7 +58,23 @@ class AudioChunk(BaseModel):
     """Represents an audio chunk file with its duration."""
 
     path: Path
+    """Path to the temporary MP3 file for this chunk."""
+
     duration_seconds: float
+    """Duration of this chunk in seconds."""
+
+
+class SegmentAudio(BaseModel):
+    """Represents extracted segment audio with offset information."""
+
+    path: Path
+    """Path to the temporary MP3 file for this segment."""
+
+    actual_start_s: float
+    """Actual start time in episode (may be < segment start due to buffer)."""
+
+    actual_end_s: float
+    """Actual end time in episode (may be > segment end due to buffer)."""
 
 
 def to_data_url(path: Path) -> str:
@@ -125,51 +141,46 @@ def split_mp3_by_duration(
 
 
 def extract_segment_audio(
-    full_mp3_data: bytes,
+    full_mp3_path: Path,
     start_time_s: float,
     end_time_s: float,
     buffer_seconds: int = SEGMENT_BUFFER_SECONDS,
-) -> bytes:
+) -> SegmentAudio:
     """
     Extract a segment from full episode audio with buffer on each side.
 
     Args:
-        full_mp3_data: Full episode MP3 data
+        full_mp3_path: Path to full episode MP3 file
         start_time_s: Segment start time in seconds
         end_time_s: Segment end time in seconds
         buffer_seconds: Buffer to add on each side in seconds
 
     Returns:
-        MP3 data for the segment with buffer
+        SegmentAudio with temp file path and actual start/end offsets
     """
-    # Load the audio data
-    with tempfile.NamedTemporaryFile(
-        mode="wb", suffix=".mp3", delete=False
-    ) as tmp_input:
-        tmp_input.write(full_mp3_data)
-        tmp_input_path = Path(tmp_input.name)
-
-    audio = AudioSegment.from_mp3(tmp_input_path)
-    tmp_input_path.unlink()
+    audio = AudioSegment.from_mp3(str(full_mp3_path))
 
     # Calculate start/end with buffer (clamped to audio bounds)
     start_ms = max(0, int((start_time_s - buffer_seconds) * 1000))
     end_ms = min(len(audio), int((end_time_s + buffer_seconds) * 1000))
 
+    # Calculate actual start/end in seconds
+    actual_start_s = start_ms / 1000.0
+    actual_end_s = end_ms / 1000.0
+
     # Extract segment
     segment = audio[start_ms:end_ms]
 
-    # Export to bytes
-    with tempfile.NamedTemporaryFile(
-        mode="wb", suffix=".mp3", delete=False
-    ) as tmp_output:
-        segment.export(tmp_output.name, format="mp3")
-        tmp_output_path = Path(tmp_output.name)
+    # Export to temp file
+    tmp_output = tempfile.NamedTemporaryFile(mode="wb", suffix=".mp3", delete=False)
+    segment.export(tmp_output.name, format="mp3")
+    tmp_output.close()
 
-    segment_data = tmp_output_path.read_bytes()
-    tmp_output_path.unlink()
-
-    return segment_data
+    return SegmentAudio(
+        path=Path(tmp_output.name),
+        actual_start_s=actual_start_s,
+        actual_end_s=actual_end_s,
+    )
 
 
 def print_dry_run_table(segments: list[FantasyCourtSegment], console: Console) -> None:
@@ -276,8 +287,6 @@ async def transcribe_segment(
             )
             return None
 
-        full_mp3_data = bucket.read_file(episode.bucket_mp3_path, s3_client)
-
         # Extract segment with buffer
         if segment.start_time_s is None or segment.end_time_s is None:
             console.print(
@@ -286,14 +295,35 @@ async def transcribe_segment(
             return None
 
         # Segmentation and chunking stage
+        episode_duration = (
+            episode.duration_seconds if episode.duration_seconds else "unknown"
+        )
+        segment_duration = segment.end_time_s - segment.start_time_s
+        segment_with_buffer_duration = segment_duration + (2 * SEGMENT_BUFFER_SECONDS)
+
         console.print(
-            f"[cyan]Segmenting and chunking:[/cyan] Episode {episode.id} '{episode.title[:40]}...'"
+            f"[cyan]Segmenting and chunking:[/cyan] Episode {episode.id} '{episode.title[:40]}...' "
+            f"(episode: {episode_duration}s, segment: {segment_duration:.1f}s, with buffer: {segment_with_buffer_duration:.1f}s)"
         )
         segment_start = time.time()
 
-        segment_mp3_data = extract_segment_audio(
-            full_mp3_data, segment.start_time_s, segment.end_time_s
+        # Download full MP3 to temp file
+        full_mp3_data = bucket.read_file(episode.bucket_mp3_path, s3_client)
+        full_mp3_tmp = tempfile.NamedTemporaryFile(
+            mode="wb", suffix=".mp3", delete=False
         )
+        full_mp3_tmp.write(full_mp3_data)
+        full_mp3_tmp.close()
+        full_mp3_path = Path(full_mp3_tmp.name)
+
+        # Extract segment audio
+        segment_audio = extract_segment_audio(
+            full_mp3_path, segment.start_time_s, segment.end_time_s
+        )
+        full_mp3_path.unlink()  # Clean up full episode temp file
+
+        # Read the segment audio bytes for chunking
+        segment_mp3_data = segment_audio.path.read_bytes()
         chunks = split_mp3_by_duration(segment_mp3_data)
 
         segment_elapsed = time.time() - segment_start
@@ -307,10 +337,10 @@ async def transcribe_segment(
         )
         transcribe_start = time.time()
 
-        all_segments = []
-        cumulative_time_offset = 0.0
-
-        for i, chunk in enumerate(chunks, 1):
+        # Transcribe all chunks in parallel
+        async def transcribe_chunk(
+            chunk: AudioChunk, chunk_index: int
+        ) -> tuple[int, TranscriptionDiarized, float]:
             chunk_start = time.time()
             with chunk.path.open("rb") as audio_file:
                 transcript: TranscriptionDiarized = (
@@ -326,8 +356,23 @@ async def transcribe_segment(
                     )
                 )
             chunk_elapsed = time.time() - chunk_start
+            return chunk_index, transcript, chunk_elapsed
 
-            # Adjust timestamps for chunks after the first
+        # Run all transcriptions in parallel
+        transcription_tasks = [
+            transcribe_chunk(chunk, i) for i, chunk in enumerate(chunks)
+        ]
+        transcription_results = await asyncio.gather(*transcription_tasks)
+
+        # Process results in order and adjust timestamps
+        # All segments are offset from the start of the episode (segment_audio.actual_start_s)
+        all_segments = []
+        cumulative_time_offset = (
+            segment_audio.actual_start_s
+        )  # Start from buffered segment start in episode
+
+        for chunk_index, transcript, chunk_elapsed in transcription_results:
+            # Adjust timestamps to be relative to episode start
             for seg in transcript.segments:
                 segment_dict = {
                     "id": seg.id,
@@ -340,10 +385,10 @@ async def transcribe_segment(
                 all_segments.append(segment_dict)
 
             # Update offset based on actual chunk duration
-            cumulative_time_offset += chunk.duration_seconds
+            cumulative_time_offset += chunks[chunk_index].duration_seconds
 
             console.print(
-                f"[dim]  Chunk {i}/{len(chunks)}: {len(transcript.segments)} segments in {chunk_elapsed:.1f}s[/dim]"
+                f"[dim]  Chunk {chunk_index + 1}/{len(chunks)}: {len(transcript.segments)} segments in {chunk_elapsed:.1f}s[/dim]"
             )
 
         transcribe_elapsed = time.time() - transcribe_start
@@ -352,14 +397,15 @@ async def transcribe_segment(
         )
 
         # Clean up temp files
+        segment_audio.path.unlink()  # Clean up segment audio file
         for chunk in chunks:
             chunk.path.unlink()
 
         # Combine into final transcript structure
         combined_transcript = {
             "segments": all_segments,
-            "start_time_s": segment.start_time_s,
-            "end_time_s": segment.end_time_s,
+            "start_time_s": segment_audio.actual_start_s,  # Start of buffered segment
+            "end_time_s": segment_audio.actual_end_s,  # End of buffered segment
         }
 
         return combined_transcript
