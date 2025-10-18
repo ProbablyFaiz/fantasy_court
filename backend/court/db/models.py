@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import datetime
 
-from sqlalchemy import ForeignKey, func
+from sqlalchemy import ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
-from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -52,14 +51,25 @@ class PodcastEpisode(Base, IndexedTimestampMixin):
     transcripts: Mapped[list[EpisodeTranscript]] = relationship(
         back_populates="episode"
     )
+    fantasy_court_segment: Mapped[FantasyCourtSegment | None] = relationship(
+        back_populates="episode", uselist=False
+    )
 
-    @hybrid_property
-    def has_fantasy_court(self) -> bool:
-        return "fantasy court" in self.description.lower()
 
-    @has_fantasy_court.expression
-    def has_fantasy_court(cls):
-        return func.lower(cls.description).contains("fantasy court")
+class FantasyCourtSegment(Base, IndexedTimestampMixin):
+    __tablename__ = "fantasy_court_segments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    episode_id: Mapped[int] = mapped_column(ForeignKey("podcast_episodes.id"))
+    start_time_s: Mapped[float | None] = mapped_column()
+    end_time_s: Mapped[float | None] = mapped_column()
+
+    provenance_id: Mapped[int] = mapped_column(ForeignKey("provenances.id"))
+
+    episode: Mapped[PodcastEpisode] = relationship(
+        back_populates="fantasy_court_segment"
+    )
+    provenance: Mapped[Provenance] = relationship()
 
 
 class EpisodeTranscript(Base, IndexedTimestampMixin):
@@ -69,8 +79,10 @@ class EpisodeTranscript(Base, IndexedTimestampMixin):
     episode_id: Mapped[int] = mapped_column(ForeignKey("podcast_episodes.id"))
 
     transcript_json: Mapped[dict] = mapped_column(JSONB)
+    provenance_id: Mapped[int] = mapped_column(ForeignKey("provenances.id"))
 
     episode: Mapped[PodcastEpisode] = relationship(back_populates="transcripts")
+    provenance: Mapped[Provenance] = relationship()
 
     def transcript_obj(self) -> None:
         # TODO: Define a pydantic model for the transcript structure and model_validate the transcript_json here
