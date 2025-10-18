@@ -30,11 +30,13 @@ dependencies = [
     "beautifulsoup4>=4.14.2",
     "lxml>=6.0.2",
     "openai>=2.5.0",
+    "pydub>=0.25.1",
 ]
 
 [dependency-groups]
 dev = [
     "factory-boy>=3.3.3",
+    "ipykernel>=7.0.1",
     "ipython>=8.27.0",
     "pgcli>=4.3.0",
     "pre-commit>=3.8.0",

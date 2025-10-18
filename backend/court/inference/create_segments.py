@@ -12,8 +12,6 @@ The script uses GPT-5-mini to:
 3. Convert timestamps to seconds for storage
 """
 
-from __future__ import annotations
-
 import asyncio
 
 import openai

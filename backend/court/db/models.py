@@ -48,8 +48,8 @@ class PodcastEpisode(Base, IndexedTimestampMixin):
     canonical_mp3_url: Mapped[str | None] = mapped_column()
     bucket_mp3_path: Mapped[str | None] = mapped_column()
 
-    transcripts: Mapped[list[EpisodeTranscript]] = relationship(
-        back_populates="episode"
+    transcript: Mapped[EpisodeTranscript | None] = relationship(
+        back_populates="episode", uselist=False
     )
     fantasy_court_segment: Mapped[FantasyCourtSegment | None] = relationship(
         back_populates="episode", uselist=False
@@ -69,6 +69,9 @@ class FantasyCourtSegment(Base, IndexedTimestampMixin):
     episode: Mapped[PodcastEpisode] = relationship(
         back_populates="fantasy_court_segment"
     )
+    transcript: Mapped[EpisodeTranscript | None] = relationship(
+        back_populates="segment", uselist=False
+    )
     provenance: Mapped[Provenance] = relationship()
 
 
@@ -77,12 +80,18 @@ class EpisodeTranscript(Base, IndexedTimestampMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     episode_id: Mapped[int] = mapped_column(ForeignKey("podcast_episodes.id"))
+    segment_id: Mapped[int | None] = mapped_column(
+        ForeignKey("fantasy_court_segments.id")
+    )
 
     transcript_json: Mapped[dict] = mapped_column(JSONB)
     provenance_id: Mapped[int] = mapped_column(ForeignKey("provenances.id"))
 
-    episode: Mapped[PodcastEpisode] = relationship(back_populates="transcripts")
+    episode: Mapped[PodcastEpisode] = relationship(back_populates="transcript")
     provenance: Mapped[Provenance] = relationship()
+    segment: Mapped[FantasyCourtSegment | None] = relationship(
+        back_populates="transcript"
+    )
 
     def transcript_obj(self) -> None:
         # TODO: Define a pydantic model for the transcript structure and model_validate the transcript_json here
