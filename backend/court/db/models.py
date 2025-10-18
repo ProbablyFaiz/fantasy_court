@@ -33,7 +33,7 @@ class PodcastEpisode(Base, IndexedTimestampMixin):
     __tablename__ = "podcast_episodes"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    guid: Mapped[str] = mapped_column(index=True)
+    guid: Mapped[str] = mapped_column(index=True, unique=True)
     title: Mapped[str] = mapped_column(index=True)
     description: Mapped[str | None] = mapped_column()
     description_html: Mapped[str | None] = mapped_column()
