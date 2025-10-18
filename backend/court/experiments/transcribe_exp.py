@@ -187,3 +187,45 @@ for transcript in all_transcripts:
 # %%
 # Clean up
 db.close()
+
+
+# models pulled from openai lib:
+# class TranscriptionDiarized(BaseModel):
+# duration: float
+# """Duration of the input audio in seconds."""
+
+# segments: List[TranscriptionDiarizedSegment]
+# """Segments of the transcript annotated with timestamps and speaker labels."""
+
+# task: Literal["transcribe"]
+# """The type of task that was run. Always `transcribe`."""
+
+# text: str
+# """The concatenated transcript text for the entire audio input."""
+
+# usage: Optional[Usage] = None
+# """Token or duration usage statistics for the request."""
+
+# class TranscriptionDiarizedSegment(BaseModel):
+# id: str
+# """Unique identifier for the segment."""
+
+# end: float
+# """End timestamp of the segment in seconds."""
+
+# speaker: str
+# """Speaker label for this segment.
+
+# When known speakers are provided, the label matches `known_speaker_names[]`.
+# Otherwise speakers are labeled sequentially using capital letters (`A`, `B`,
+# ...).
+# """
+
+# start: float
+# """Start timestamp of the segment in seconds."""
+
+# text: str
+# """Transcript text for this segment."""
+
+# type: Literal["transcript.text.segment"]
+# """The type of the segment. Always `transcript.text.segment`."""

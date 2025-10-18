@@ -18,11 +18,11 @@ Static site generator pattern: Python backend generates JSON data, Next.js pre-r
 - **Build:** Static Site Generation (SSG)
 - **Routes:**
   - `/` - Homepage (list of posts from `index.json`)
-  - `/posts/[slug]` - Individual post pages
+  - `/opinions/[slug]` - Individual post pages
 - **SEO:** Pre-rendered HTML files for all pages (Google can index)
 - **UX:** Still functions as SPA after initial load
 
-## Workflow
+## Sketch of Workflow
 
 1. **Python scheduled job** (runs on your machine):
    ```bash
