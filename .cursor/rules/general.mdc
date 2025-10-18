@@ -1,0 +1,30 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+## Commands
+- Run all tests: `cd backend && pytest`
+- Run frontend typechecking: `just typecheck`
+- Run backend (Python) tests: `just test-backend`
+    - Run single test file: `just test-backend <path to test file relative to backend/>` e.g., `just test-backend test/api/test_tasks_api.py`
+- Run frontend (TS) tests: `just test-frontend`
+    - Run single test file: `just test-frontend <path to test file relative to frontend/>` e.g., `just test-frontend src/features/home/HomePage.test.tsx`
+
+- Format code: `just lint`
+  - Often helpful to run this after making large code changes.
+- Generate OpenAPI client: `just openapi` (regenerates frontend/src/client from running API)
+- Generate (but do not run) DB migrations based on changes to backend/blank/db/models.py: `just migrate "message"` (auto-generate)
+    - Please use `just migrate` and then modify the alembic migration as necessary, do not try to create one from scratch manually.
+    - Remember when creating migrations for non-nullable columns that if they are for an existing table, you will probably need to
+    modify the migration to first create the column as nullable, initialize the column's values appropriately, and then set it to
+    non-nullable.
+- Add a shadcn/ui component: `just shadd <component>` (equivalent to `pnpm dlx shadcn@latest add <component>`)
+- You should not, unless instructed, run the API or frontend dev servers; the developer is almost certainly already running them, and you doing so will just be harmful. Especially important: you have a tendency to run the dev server after making changes. Do NOT do this.
+
+Note that, as shown, to run code in the backend Python environment, one must run `uv run <your python command>`
+inside the `backend/` directory. The `just` shortcuts handle this for you when they are available.
+
+YOU ARE ABSOLUTELY PROHIBITED FROM EXECUTING THE MIGRATION YOU HAVE GENERATED YOURSELF. DO NOT RUN `just migrate-up` OR
+`alembic upgrade ...` or `alembic downgrade ...` UNDER ANY CIRCUMSTANCES. IF RUNNING A MIGRATION IS NECESSARY FOR THE
+CONTINUATION OF WORK, ASK THE USER TO PERFORM IT.

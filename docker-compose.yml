@@ -1,0 +1,75 @@
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARED_TUNNEL_TOKEN}
+    depends_on:
+      - nginx
+    container_name: blank-cloudflared
+
+  api:
+    container_name: blank-api
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command:
+      [
+        "gunicorn",
+        "blank.api.main:app",
+        "--workers",
+        "4",
+        "--worker-class",
+        "uvicorn.workers.UvicornWorker",
+        "--bind",
+        "0.0.0.0:80",
+      ]
+    volumes:
+      - blank_data:/data
+    environment:
+      - DATA_ROOT=/data
+      - RL_DEBUG=0
+      - TZ=America/Los_Angeles
+    env_file:
+      - prod.env
+    restart: unless-stopped
+
+  celery:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["celery", "-A", "blank.jobs.celery:celery_app", "worker", "--beat", "--loglevel=info"]
+    volumes:
+      - blank_data:/data
+    environment:
+      - DATA_ROOT=/data
+      - RL_DEBUG=0
+      - TZ=America/Los_Angeles
+    env_file:
+      - prod.env
+    container_name: blank-celery
+    restart: unless-stopped
+
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        - BLANK_API_URL=/api
+    container_name: blank-frontend
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+      - frontend
+    restart: unless-stopped
+
+volumes:
+  blank_data:
+    driver: local

@@ -1,0 +1,54 @@
+name: Test Backend
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: start
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: yezz123/setup-uv@v4
+      - name: Install dependencies
+        run: |
+          cd backend
+          uv venv
+          uv sync --dev
+      - name: Run tests
+        run: cd backend && uv run pytest
+        env:
+          DATA_ROOT: /tmp
+          BLANK_PG_ADMIN_USER: postgres
+          BLANK_PG_API_USER: postgres
+          BLANK_PG_HOST: localhost
+          BLANK_PG_PORT: 5432
+          BLANK_PG_DB: blank
+          BLANK_REDIS_HOST: localhost
+          BLANK_REDIS_PORT: 6379
+          BLANK_REDIS_DB: 0
