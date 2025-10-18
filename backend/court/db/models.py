@@ -107,19 +107,14 @@ class TranscriptSegment(BaseModel):
 
     id: str
     """Unique identifier for the segment."""
-
     start: float
     """Start timestamp in seconds (relative to episode start)."""
-
     end: float
     """End timestamp in seconds (relative to episode start)."""
-
     speaker: str
     """Speaker label (either from known speakers or A, B, C, etc.)."""
-
     text: str
     """Transcript text for this segment."""
-
     type: str = Field(default="transcript.text.segment")
     """The type of the segment."""
 
