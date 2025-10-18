@@ -1,7 +1,7 @@
 import { defineConfig } from "@hey-api/openapi-ts";
 
 const args = process.argv.slice(2);
-const host = args[0] || "localhost:8101";
+const host = args[0] || "localhost:8203";
 
 export default defineConfig({
   input: host.includes("http")

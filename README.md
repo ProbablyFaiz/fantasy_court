@@ -1,6 +1,6 @@
 # Fantasy Court
 
-An official-seeming court website for The Ringer's Fantasy Court podcast segment. Uses AI to transcribe episodes, extract fantasy football dispute cases, and generate legal-style opinions with a React frontend and FastAPI backend.
+An official-seeming court website for *The Ringer Fantasy Football Show*'s Fantasy Court podcast segment. Uses AI to transcribe episodes, extract fantasy football dispute cases, and generate legal-style opinions with a React frontend and FastAPI backend.
 
 ## Prerequisites
 
@@ -66,8 +66,8 @@ just frontend
 
 Your app will be available at:
 - Frontend: http://localhost:5185
-- Backend API: http://localhost:8101
-- API Docs: http://localhost:8101/docs
+- Backend API: http://localhost:8203
+- API Docs: http://localhost:8203/docs
 
 ### 5. Run Tests
 
@@ -181,4 +181,3 @@ TODO
 **Production Deployment:**
 - Docker/Docker Compose for building and running the application
 - Cloudflare Tunnel acts as a reverse proxy for the application to expose it to the internet
-

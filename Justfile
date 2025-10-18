@@ -18,11 +18,11 @@ sql:
 
 # Start the FastAPI backend development server
 api *ARGS:
-    cd backend && uv run fastapi dev court/api/main.py --host 0.0.0.0 --port 8101 {{ARGS}}
+    cd backend && uv run fastapi dev court/api/main.py --host 0.0.0.0 --port 8203 {{ARGS}}
 
 # Start the frontend development server
 frontend *ARGS:
-    cd frontend && VITE_FANTASY_COURT_API_URL="http://poirot:8101" pnpm dev --host 0.0.0.0 --port 5186 {{ARGS}}
+    cd frontend && VITE_FANTASY_COURT_API_URL="http://poirot:8203" pnpm dev --host 0.0.0.0 --port 5186 {{ARGS}}
 
 # Start the celery dev worker
 celery *ARGS:

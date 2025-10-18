@@ -54,4 +54,6 @@ def safe_init_sentry():
         LOGGER.warning("SENTRY_DSN is not set, skipping sentry initialization")
         return
 
-    sentry_sdk.init(dsn=SENTRY_DSN, send_default_pii=True, environment=FANTASY_COURT_ENV)
+    sentry_sdk.init(
+        dsn=SENTRY_DSN, send_default_pii=True, environment=FANTASY_COURT_ENV
+    )
