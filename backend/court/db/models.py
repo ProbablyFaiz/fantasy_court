@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import datetime
-from enum import StrEnum
 
-import sqlalchemy as sa
-from sqlalchemy import String
+from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -17,32 +15,32 @@ class Base(DeclarativeBase):
 
 
 class TimestampMixin:
-    created_at: Mapped[datetime.datetime] = mapped_column(server_default=sa.func.now())
-    updated_at: Mapped[datetime.datetime] = mapped_column(
-        server_default=sa.func.now(), server_onupdate=sa.func.now()
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        default=lambda: datetime.datetime.now(datetime.UTC),
     )
 
 
 class IndexedTimestampMixin:
     created_at: Mapped[datetime.datetime] = mapped_column(
-        server_default=sa.func.now(), index=True
+        TIMESTAMP(timezone=True),
+        default=lambda: datetime.datetime.now(datetime.UTC),
+        index=True,
     )
-    updated_at: Mapped[datetime.datetime] = mapped_column(
-        server_default=sa.func.now(), server_onupdate=sa.func.now(), index=True
-    )
 
 
-class TaskPriority(StrEnum):
-    LOW = "LOW"
-    MEDIUM = "MEDIUM"
-    HIGH = "HIGH"
-
-
-class Task(Base, IndexedTimestampMixin):
-    __tablename__ = "tasks"
+class PodcastEpisode(Base, IndexedTimestampMixin):
+    __tablename__ = "podcast_episodes"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column()
+    guid: Mapped[str] = mapped_column(index=True)
+    title: Mapped[str] = mapped_column(index=True)
     description: Mapped[str | None] = mapped_column()
-    completed: Mapped[bool] = mapped_column(server_default=sa.text("false"))
-    priority: Mapped[TaskPriority] = mapped_column(String())
+    description_html: Mapped[str | None] = mapped_column()
+    pub_date: Mapped[datetime.datetime] = mapped_column(
+        TIMESTAMP(timezone=True), index=True
+    )
+
+    duration_seconds: Mapped[int | None] = mapped_column()
+    canonical_mp3_url: Mapped[str | None] = mapped_column()
+    rss_feed_url: Mapped[str | None] = mapped_column()

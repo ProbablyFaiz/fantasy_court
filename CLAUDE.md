@@ -59,6 +59,7 @@ be communicative and not just a list of changes.
 ### Using the `rl` Utility Library
 When writing Python scripts, we have a utility library called `rl`. Some notes on `rl` and the way we use it:
 - We have an enhanced version of click, the Python CLI library. The only difference in usage from the regular click is one does `import rl.utils.click as click` instead of `import click`.
+- Use `beautifulsoup4` and `lxml` for HTML or XML parsing rather than `html.parser` or `xml.etree.ElementTree`.
 - When using logging in a program, use `rl`'s preconfigured logger: `from rl.utils import LOGGER`.
 - `rl` has (among others) the following IO functions, usable within `import rl.utils.io` (do not `from import`, use the absolute import):
     - `def get_data_path(*args) -> Path` — Generally, whenever a CLI script deals with input and output files/dirs, the default paths (which should typically be configurable via CLI options) are set on some subpath of the data path. E.g. `_DEFAULT_OUTPUT_DIR = rl.utils.io.get_data_path("raw_codes", "sf")`.

@@ -27,6 +27,8 @@ dependencies = [
     "alembic-utils>=0.8.8",
     "structlog>=25.4.0",
     "sentry-sdk[celery,fastapi,sqlalchemy]>=2.30.0",
+    "beautifulsoup4>=4.14.2",
+    "lxml>=6.0.2",
 ]
 
 [dependency-groups]
