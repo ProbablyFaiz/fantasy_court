@@ -244,8 +244,8 @@ def print_transcripts_table(
 
     for transcript in recent_transcripts:
         num_segments = len(transcript.transcript_json.get("segments", []))
-        start = f"{transcript.transcript_json.get('start_time_s', 0):.1f}s"
-        end = f"{transcript.transcript_json.get('end_time_s', 0):.1f}s"
+        start = f"{transcript.start_time_s:.1f}s"
+        end = f"{transcript.end_time_s:.1f}s"
 
         table.add_row(transcript.episode.title, str(num_segments), start, end)
 
@@ -401,11 +401,11 @@ async def transcribe_segment(
         for chunk in chunks:
             chunk.path.unlink()
 
-        # Combine into final transcript structure
+        # Combine into final transcript structure (without start/end times in JSON)
         combined_transcript = {
             "segments": all_segments,
-            "start_time_s": segment_audio.actual_start_s,  # Start of buffered segment
-            "end_time_s": segment_audio.actual_end_s,  # End of buffered segment
+            "actual_start_s": segment_audio.actual_start_s,  # Metadata for return value
+            "actual_end_s": segment_audio.actual_end_s,  # Metadata for return value
         }
 
         return combined_transcript
@@ -463,11 +463,17 @@ async def process_segments_batch(
             if not transcript_data:
                 return None
 
-            # Create transcript record
+            # Extract metadata from transcript data
+            actual_start_s = transcript_data.pop("actual_start_s")
+            actual_end_s = transcript_data.pop("actual_end_s")
+
+            # Create transcript record with start/end as columns
             transcript_record = EpisodeTranscript(
                 episode_id=segment.episode.id,
                 segment_id=segment.id,
-                transcript_json=transcript_data,
+                transcript_json=transcript_data,  # Only contains segments now
+                start_time_s=actual_start_s,
+                end_time_s=actual_end_s,
                 provenance_id=provenance_id,
             )
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 
+from pydantic import BaseModel, Field
 from sqlalchemy import ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
 from sqlalchemy.orm import (
@@ -85,6 +86,9 @@ class EpisodeTranscript(Base, IndexedTimestampMixin):
     )
 
     transcript_json: Mapped[dict] = mapped_column(JSONB)
+    start_time_s: Mapped[float] = mapped_column()
+    end_time_s: Mapped[float] = mapped_column()
+
     provenance_id: Mapped[int] = mapped_column(ForeignKey("provenances.id"))
 
     episode: Mapped[PodcastEpisode] = relationship(back_populates="transcript")
@@ -93,9 +97,38 @@ class EpisodeTranscript(Base, IndexedTimestampMixin):
         back_populates="transcript"
     )
 
-    def transcript_obj(self) -> None:
-        # TODO: Define a pydantic model for the transcript structure and model_validate the transcript_json here
-        pass
+    def transcript_obj(self) -> Transcript:
+        """Parse and validate the transcript JSON into a Pydantic model."""
+        return Transcript.model_validate(self.transcript_json)
+
+
+class TranscriptSegment(BaseModel):
+    """A single diarized segment within a transcript."""
+
+    id: str
+    """Unique identifier for the segment."""
+
+    start: float
+    """Start timestamp in seconds (relative to episode start)."""
+
+    end: float
+    """End timestamp in seconds (relative to episode start)."""
+
+    speaker: str
+    """Speaker label (either from known speakers or A, B, C, etc.)."""
+
+    text: str
+    """Transcript text for this segment."""
+
+    type: str = Field(default="transcript.text.segment")
+    """The type of the segment."""
+
+
+class Transcript(BaseModel):
+    """Full transcript with diarized segments."""
+
+    segments: list[TranscriptSegment]
+    """List of diarized transcript segments."""
 
 
 class Provenance(Base, IndexedTimestampMixin):
