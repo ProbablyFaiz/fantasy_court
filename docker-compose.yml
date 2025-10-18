@@ -7,17 +7,17 @@ services:
       - TUNNEL_TOKEN=${CLOUDFLARED_TUNNEL_TOKEN}
     depends_on:
       - nginx
-    container_name: blank-cloudflared
+    container_name: fantasy-court-cloudflared
 
   api:
-    container_name: blank-api
+    container_name: fantasy-court-api
     build:
       context: .
       dockerfile: backend/Dockerfile
     command:
       [
         "gunicorn",
-        "blank.api.main:app",
+        "court.api.main:app",
         "--workers",
         "4",
         "--worker-class",
@@ -26,7 +26,7 @@ services:
         "0.0.0.0:80",
       ]
     volumes:
-      - blank_data:/data
+      - fantasy_court_data:/data
     environment:
       - DATA_ROOT=/data
       - RL_DEBUG=0
@@ -39,16 +39,16 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    command: ["celery", "-A", "blank.jobs.celery:celery_app", "worker", "--beat", "--loglevel=info"]
+    command: ["celery", "-A", "court.jobs.celery:celery_app", "worker", "--beat", "--loglevel=info"]
     volumes:
-      - blank_data:/data
+      - fantasy_court_data:/data
     environment:
       - DATA_ROOT=/data
       - RL_DEBUG=0
       - TZ=America/Los_Angeles
     env_file:
       - prod.env
-    container_name: blank-celery
+    container_name: fantasy-court-celery
     restart: unless-stopped
 
 
@@ -57,8 +57,8 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
       args:
-        - BLANK_API_URL=/api
-    container_name: blank-frontend
+        - FANTASY_COURT_API_URL=/api
+    container_name: fantasy-court-frontend
     restart: unless-stopped
 
   nginx:
@@ -71,5 +71,5 @@ services:
     restart: unless-stopped
 
 volumes:
-  blank_data:
+  fantasy_court_data:
     driver: local

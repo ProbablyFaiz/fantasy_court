@@ -5,11 +5,11 @@ from pathlib import Path
 import boto3
 import rl.utils.io
 
-BUCKET_NAME = rl.utils.io.getenv("BLANK_BUCKET_NAME")
-BUCKET_ACCESS_KEY_ID = rl.utils.io.getenv("BLANK_BUCKET_ACCESS_KEY_ID")
-BUCKET_SECRET_ACCESS_KEY = rl.utils.io.getenv("BLANK_BUCKET_SECRET_ACCESS_KEY")
-BUCKET_ENDPOINT = rl.utils.io.getenv("BLANK_BUCKET_ENDPOINT")
-BUCKET_REGION = rl.utils.io.getenv("BLANK_BUCKET_REGION")
+BUCKET_NAME = rl.utils.io.getenv("FANTASY_COURT_BUCKET_NAME")
+BUCKET_ACCESS_KEY_ID = rl.utils.io.getenv("FANTASY_COURT_BUCKET_ACCESS_KEY_ID")
+BUCKET_SECRET_ACCESS_KEY = rl.utils.io.getenv("FANTASY_COURT_BUCKET_SECRET_ACCESS_KEY")
+BUCKET_ENDPOINT = rl.utils.io.getenv("FANTASY_COURT_BUCKET_ENDPOINT")
+BUCKET_REGION = rl.utils.io.getenv("FANTASY_COURT_BUCKET_REGION")
 
 
 def get_bucket_client() -> boto3.client:

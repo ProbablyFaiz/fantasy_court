@@ -25,4 +25,4 @@ jobs:
       - name: Build frontend
         run: cd frontend && pnpm run build
         env:
-          VITE_BLANK_API_URL: /api
+          VITE_FANTASY_COURT_API_URL: /api

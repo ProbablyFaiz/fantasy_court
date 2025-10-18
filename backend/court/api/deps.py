@@ -4,8 +4,8 @@ from typing import Annotated
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from blank.db.models import Task
-from blank.db.session import get_api_session
+from court.db.models import Task
+from court.db.session import get_api_session
 
 
 def get_db() -> Generator[Session, None, None]:

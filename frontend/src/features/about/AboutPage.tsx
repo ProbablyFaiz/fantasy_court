@@ -24,7 +24,7 @@ const AboutPage: React.FC = () => {
           </Link>
           <div className="mb-8">
             <Badge variant="secondary" className="mb-4">
-              About Blank
+              About Fantasy Court
             </Badge>
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 dark:text-white mb-6">

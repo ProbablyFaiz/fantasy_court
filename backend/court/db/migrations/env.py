@@ -3,9 +3,9 @@ from logging.config import fileConfig
 from alembic import context
 from alembic_utils.replaceable_entity import register_entities
 
-from blank.db.models import Base
-from blank.db.pg_objects import PG_OBJECTS
-from blank.db.session import ADMIN_POSTGRES_URI, get_engine
+from court.db.models import Base
+from court.db.pg_objects import PG_OBJECTS
+from court.db.session import ADMIN_POSTGRES_URI, get_engine
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

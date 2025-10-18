@@ -1,4 +1,4 @@
-from blank.jobs.celery import celery_app
+from court.jobs.celery import celery_app
 
 
 @celery_app.task

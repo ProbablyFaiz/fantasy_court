@@ -1,6 +1,6 @@
-# Blank Template
+# Fantasy Court
 
-A full-stack template with a React frontend and FastAPI backend.
+An official-seeming court website for The Ringer's Fantasy Court podcast segment. Uses AI to transcribe episodes, extract fantasy football dispute cases, and generate legal-style opinions with a React frontend and FastAPI backend.
 
 ## Prerequisites
 
@@ -19,15 +19,9 @@ For deployment:
 ### 1. Clone and Customize
 
 ```bash
-git clone https://github.com/ProbablyFaiz/blank.git <your-project-name>
-cd <your-project-name>
+git clone https://github.com/ProbablyFaiz/fantasy_court.git fantasy_court
+cd fantasy_court
 ```
-
-**Customize the project name:**
-- Recommended: Use VSCode's find/replace (Ctrl+Shift+H) with "Preserve Case" enabled
-- Replace all instances of `blank` with your project name
-- Update `backend/pyproject.toml` project name and description
-- Update `frontend/package.json` name field
 
 ### 2. Install Dependencies
 
@@ -54,8 +48,8 @@ Edit `.env` and fill in the variables:
 - Configure PostgreSQL connection details
 - For database credentials, use the helper scripts in `infra/` to create users:
   ```bash
-  ./infra/create_admin_db_user.fish <your_admin_user> <your_database>
-  ./infra/create_api_db_user.fish <your_api_user> <your_database>
+  ./infra/create_admin_db_user.fish <your_admin_user> fantasy_court
+  ./infra/create_api_db_user.fish <your_api_user> fantasy_court
   ```
 
 ### 4. Start Development
@@ -135,7 +129,7 @@ TODO
 
 ```
 ├── backend/           # FastAPI backend
-│   ├── blank/         # Main package (rename this!)
+│   ├── court/         # Main package
 │   │   ├── api/       # API routes & endpoints
 │   │   ├── db/        # Database models, sessions & migrations
 │   │   ├── jobs/      # Background job processing (Celery)
@@ -188,13 +182,3 @@ TODO
 - Docker/Docker Compose for building and running the application
 - Cloudflare Tunnel acts as a reverse proxy for the application to expose it to the internet
 
-
-## TODOs
-
-- Add instructions for setting up the production deployment
-- Add Playwright tests
-  - We'll probably want to set up a whole docker-compose.test.yml file for this to make it CI-friendly
-- Add more than Sentry for observability
-- Add some kind of optional auth boilerplate
-- Refactor `rl` library to accept a `RL_ENV_PREFIX` environment (e.g. `RL_ENV_PREFIX=BLANK_`) so that we can place
-  bucket and Postgres utils in that package rather than copy-pasting them into each project via a template

@@ -1,10 +1,10 @@
 [project]
-name = "blank"
+name = "fantasy-court"
 version = "0.1.0"
 authors = [
     { name = "Faiz Surani", email = "faiz@faizsurani.com" },
 ]
-description = "A blank project"
+description = "Fantasy Court - A fantasy sports league management system"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3",
@@ -45,7 +45,7 @@ dev = [
 rl = { git = "https://github.com/ProbablyFaiz/rl.git" }
 
 [project.urls]
-homepage = "https://github.com/ProbablyFaiz/blank"
+homepage = "https://github.com/ProbablyFaiz/fantasy_court"
 
 [build-system]
 requires = ["hatchling"]

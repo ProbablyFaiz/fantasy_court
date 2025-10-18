@@ -14,7 +14,7 @@ alwaysApply: true
 - Format code: `just lint`
   - Often helpful to run this after making large code changes.
 - Generate OpenAPI client: `just openapi` (regenerates frontend/src/client from running API)
-- Generate (but do not run) DB migrations based on changes to backend/blank/db/models.py: `just migrate "message"` (auto-generate)
+- Generate (but do not run) DB migrations based on changes to backend/court/db/models.py: `just migrate "message"` (auto-generate)
     - Please use `just migrate` and then modify the alembic migration as necessary, do not try to create one from scratch manually.
     - Remember when creating migrations for non-nullable columns that if they are for an existing table, you will probably need to
     modify the migration to first create the column as nullable, initialize the column's values appropriately, and then set it to

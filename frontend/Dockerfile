@@ -1,6 +1,6 @@
 FROM node:20-slim AS builder
 
-ARG BLANK_API_URL
+ARG FANTASY_COURT_API_URL
 
 RUN npm install -g pnpm
 
@@ -14,7 +14,7 @@ RUN pnpm install --frozen-lockfile
 
 COPY frontend/ .
 
-ENV VITE_BLANK_API_URL=${BLANK_API_URL}
+ENV VITE_FANTASY_COURT_API_URL=${FANTASY_COURT_API_URL}
 RUN pnpm run build
 
 FROM nginx:alpine

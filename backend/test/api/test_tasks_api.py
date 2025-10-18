@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from blank.db.models import Task
+from court.db.models import Task
 from test.factories import TaskFactory
 
 

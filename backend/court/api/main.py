@@ -11,17 +11,17 @@ from fastapi import Depends, FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
-from blank.api.deps import get_db, get_task
-from blank.api.interfaces import (
+from court.api.deps import get_db, get_task
+from court.api.interfaces import (
     PaginatedBase,
     TaskCreate,
     TaskListItem,
     TaskRead,
     TaskUpdate,
 )
-from blank.db.models import Task, TaskPriority
-from blank.jobs.celery import celery_app
-from blank.utils.observe import safe_init_sentry
+from court.db.models import Task, TaskPriority
+from court.jobs.celery import celery_app
+from court.utils.observe import safe_init_sentry
 
 safe_init_sentry()
 
@@ -37,13 +37,13 @@ app.add_middleware(
 
 @app.get("/health")
 def health():
-    celery_app.send_task("blank.jobs.tasks.healthy_job")
+    celery_app.send_task("court.jobs.tasks.healthy_job")
     return {"status": "ok"}
 
 
 @app.get("/error")
 def error():
-    celery_app.send_task("blank.jobs.tasks.error_job")
+    celery_app.send_task("court.jobs.tasks.error_job")
     raise Exception("Test error")
 
 

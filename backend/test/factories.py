@@ -1,7 +1,7 @@
 import factory
 from factory import Faker
 
-from blank.db.models import Task, TaskPriority
+from court.db.models import Task, TaskPriority
 
 
 class TaskFactory(factory.Factory):

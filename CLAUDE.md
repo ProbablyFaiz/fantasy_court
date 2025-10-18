@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Format code: `just lint`
   - Often helpful to run this after making large code changes.
 - Generate OpenAPI client: `just openapi` (regenerates frontend/src/client from running API)
-- Generate (but do not run) DB migrations based on changes to backend/perm/db/models.py: `just migrate "message"` (auto-generate)
+- Generate (but do not run) DB migrations based on changes to backend/court/db/models.py: `just migrate "message"` (auto-generate)
     - Please use `just migrate` and then modify the alembic migration as necessary, do not try to create one from scratch manually.
     - Remember when creating migrations for non-nullable columns that if they are for an existing table, you will probably need to
     modify the migration to first create the column as nullable, initialize the column's values appropriately, and then set it to
@@ -50,7 +50,7 @@ be communicative and not just a list of changes.
   - Some helpful context: my projects are typically structured such that models are in <project_name>.db.models, and you can create a session with `from <project_name>.db.session import get_session` (e.g. `from cdle.db.session`) and then `session = get_session()`.
 - Use Pydantic 2.x syntax, not 1.x.
 - Prefer Pydantic models over dataclasses when applicable.
-- Prefer full imports for lowercase (non-class, usually) symbols, e.g. `import tenacity ... @tenacity.retry` or `import tqdm ... tqdm.tqdm()`, and `from` imports for uppercase constants and classes, e.g., `from blank.db.models import Chunk, CHUNK_SEPARATOR`.
+- Prefer full imports for lowercase (non-class, usually) symbols, e.g. `import tenacity ... @tenacity.retry` or `import tqdm ... tqdm.tqdm()`, and `from` imports for uppercase constants and classes, e.g., `from court.db.models import Chunk, CHUNK_SEPARATOR`.
 - Lazy imports (that is, imports not at the top of the file) are ABSOLUTELY PROHIBITED, unless necessary to avoid a circular import.
 
 ### Writing Standalone Scripts
@@ -73,13 +73,13 @@ When creating click CLIs, obey the following conventions:
 
 
 ### FastAPI API Development
-The API endpoints, interfaces, and dependencies are contained within the `backend/blank/api` directory.
+The API endpoints, interfaces, and dependencies are contained within the `backend/court/api` directory.
 
 - All endpoints should be decorated with the `response_model` and an `operation_id` (in camel case, e.g. `listEvalIssues`). GET endpoints which return paginated lists should be named as list{plural object in camel case} (e.g. `listEvalIssues` with return type `PaginatedBase[EvalIssueItem]`), for single objects, `read{singular object in camel case}`, e.g. `readEvalIssue` with return type `EvalIssueRead`.
 - When declaring endpoint dependencies, use the Annotated syntax, e.g., `db: Annotated[Session, Depends(get_db)]`, NOT the `= Depends(get_db)` default argument syntax.
 - Words in urls should be separated by underscores, not dashes. E.g. `issue_histories` not `issue-histories`.
-- By convention, list endpoints should return a paginated object using the PaginatedBase generic in backend/blank/api/interfaces.py. Here is an example:
-- When writing dependencies for the API in `backend/blank/api/deps.py`, you should be sure to eager-load any related models (via `.options` on the query) that will be sent as part of the defined interface in `backend/blank/api/interfaces.py`. In almost 100% of cases, the correct approach is `selectinload`; `joinedload` has unpredictable and sometimes dire performance consequences.
+- By convention, list endpoints should return a paginated object using the PaginatedBase generic in backend/court/api/interfaces.py. Here is an example:
+- When writing dependencies for the API in `backend/court/api/deps.py`, you should be sure to eager-load any related models (via `.options` on the query) that will be sent as part of the defined interface in `backend/court/api/interfaces.py`. In almost 100% of cases, the correct approach is `selectinload`; `joinedload` has unpredictable and sometimes dire performance consequences.
 - When defining interfaces, typically follow the convention of defining a model's `<model_name>Base` with the small and direct fields of a model, a `<model_name>Read` which is the full-fat version of the model that we would by convention return from a `read<model_name>` endpoint that has any of the related objects as well. And a `<model_name>Item` interface that would typically be returned in a related object's list child. E.g. a `ProjectRead` might have a `permit_applications` field which is typed as `list[PermitApplicationItem]`.
     - This is a general practice but not a hard rule, and we can depart from it where particular items require related objects; the direct fields contain a large blob that should be omitted; etc.
 

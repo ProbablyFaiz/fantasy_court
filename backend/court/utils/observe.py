@@ -5,8 +5,8 @@ import rl.utils.io
 import sentry_sdk
 import structlog
 
-SENTRY_DSN = rl.utils.io.getenv("BLANK_SENTRY_DSN")
-BLANK_ENV = rl.utils.io.getenv("BLANK_ENV", "dev")
+SENTRY_DSN = rl.utils.io.getenv("FANTASY_COURT_SENTRY_DSN")
+FANTASY_COURT_ENV = rl.utils.io.getenv("FANTASY_COURT_ENV", "dev")
 
 
 def configure_logging():
@@ -54,4 +54,4 @@ def safe_init_sentry():
         LOGGER.warning("SENTRY_DSN is not set, skipping sentry initialization")
         return
 
-    sentry_sdk.init(dsn=SENTRY_DSN, send_default_pii=True, environment=BLANK_ENV)
+    sentry_sdk.init(dsn=SENTRY_DSN, send_default_pii=True, environment=FANTASY_COURT_ENV)

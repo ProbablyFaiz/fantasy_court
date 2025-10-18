@@ -5,15 +5,15 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import QueuePool
 
-PG_HOST = rl.utils.io.getenv("BLANK_PG_HOST")
-PG_PORT = rl.utils.io.getenv("BLANK_PG_PORT")
-PG_DB = rl.utils.io.getenv("BLANK_PG_DB")
+PG_HOST = rl.utils.io.getenv("FANTASY_COURT_PG_HOST")
+PG_PORT = rl.utils.io.getenv("FANTASY_COURT_PG_PORT")
+PG_DB = rl.utils.io.getenv("FANTASY_COURT_PG_DB")
 
-PG_ADMIN_USER = rl.utils.io.getenv("BLANK_PG_ADMIN_USER")
-PG_ADMIN_PASSWORD = rl.utils.io.getenv("BLANK_PG_ADMIN_PASSWORD")
+PG_ADMIN_USER = rl.utils.io.getenv("FANTASY_COURT_PG_ADMIN_USER")
+PG_ADMIN_PASSWORD = rl.utils.io.getenv("FANTASY_COURT_PG_ADMIN_PASSWORD")
 
-PG_API_USER = rl.utils.io.getenv("BLANK_PG_API_USER")
-PG_API_PASSWORD = rl.utils.io.getenv("BLANK_PG_API_PASSWORD")
+PG_API_USER = rl.utils.io.getenv("FANTASY_COURT_PG_API_USER")
+PG_API_PASSWORD = rl.utils.io.getenv("FANTASY_COURT_PG_API_PASSWORD")
 
 
 def get_postgres_uri(
@@ -32,7 +32,7 @@ def get_postgres_uri(
         ]
     ):
         raise ValueError(
-            "You must provide env variables BLANK_PG_HOST, BLANK_PG_PORT, BLANK_PG_{ADMIN,API}_USER, BLANK_PG_{ADMIN,API}_PASSWORD, BLANK_PG_DB."
+            "You must provide env variables FANTASY_COURT_PG_HOST, FANTASY_COURT_PG_PORT, FANTASY_COURT_PG_{ADMIN,API}_USER, FANTASY_COURT_PG_{ADMIN,API}_PASSWORD, FANTASY_COURT_PG_DB."
         )
 
     postgres_password = quote_plus(postgres_password or "")

@@ -13,7 +13,7 @@ export const Footer: React.FC = () => {
             <div className="flex items-center mb-4 md:mb-0">
               <CheckSquare className="h-6 w-6 text-blue-600" />
               <span className="ml-2 text-lg font-semibold text-slate-900 dark:text-white">
-                Blank
+                Fantasy Court
               </span>
             </div>
             <div className="flex space-x-6">
@@ -24,7 +24,7 @@ export const Footer: React.FC = () => {
           </div>
           <Separator className="my-6" />
           <div className="text-center text-slate-500 dark:text-slate-400">
-            <p>&copy; 2024 Blank - Simple Task Management</p>
+            <p>&copy; 2024 Fantasy Court - Fantasy Sports League Management</p>
           </div>
         </div>
       </footer>

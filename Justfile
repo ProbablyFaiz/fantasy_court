@@ -14,19 +14,19 @@ install:
     cd ../frontend && pnpm install
 
 sql:
-    cd backend && uv run pgcli "postgresql://$BLANK_PG_ADMIN_USER:$BLANK_PG_ADMIN_PASSWORD@$BLANK_PG_HOST:$BLANK_PG_PORT/$BLANK_PG_DB"
+    cd backend && uv run pgcli "postgresql://$FANTASY_COURT_PG_ADMIN_USER:$FANTASY_COURT_PG_ADMIN_PASSWORD@$FANTASY_COURT_PG_HOST:$FANTASY_COURT_PG_PORT/$FANTASY_COURT_PG_DB"
 
 # Start the FastAPI backend development server
 api *ARGS:
-    cd backend && uv run fastapi dev blank/api/main.py --host 0.0.0.0 --port 8101 {{ARGS}}
+    cd backend && uv run fastapi dev court/api/main.py --host 0.0.0.0 --port 8101 {{ARGS}}
 
 # Start the frontend development server
 frontend *ARGS:
-    cd frontend && VITE_BLANK_API_URL="http://poirot:8101" pnpm dev --host 0.0.0.0 --port 5186 {{ARGS}}
+    cd frontend && VITE_FANTASY_COURT_API_URL="http://poirot:8101" pnpm dev --host 0.0.0.0 --port 5186 {{ARGS}}
 
 # Start the celery dev worker
 celery *ARGS:
-    cd backend && uv run celery -A blank.jobs.celery:celery_app worker --loglevel=info {{ARGS}}
+    cd backend && uv run celery -A court.jobs.celery:celery_app worker --loglevel=info {{ARGS}}
 
 # Build the frontend for production
 build:
