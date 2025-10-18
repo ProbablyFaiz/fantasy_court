@@ -18,3 +18,5 @@ This is a fun side project to build an official-seeming court website for the Ri
     - Use an LLM to extract timestamps and detailed summaries of individual cases, store individual cases in database table
     - For each case, use Claude Sonnet 4.5 to generate a legal opinion with HTML formatting (including small caps, italics, etc.), with majority author (or per curiam) and a dissent if someone disagrees. Store in an opinions table
     - Generate PDF with weasyprint, store in bucket
+
+Idea: let opinion drafting agent build up a common law - go chronologically and give it access to a database of its previous opinions that it can cite, while staying faithful with the actual adjudication of the case in the episode!
