@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import datetime
 
-from sqlalchemy.dialects.postgresql import TIMESTAMP
+from sqlalchemy import ForeignKey, func
+from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
     mapped_column,
+    relationship,
 )
 
 
@@ -42,5 +45,42 @@ class PodcastEpisode(Base, IndexedTimestampMixin):
     )
 
     duration_seconds: Mapped[int | None] = mapped_column()
-    canonical_mp3_url: Mapped[str | None] = mapped_column()
     rss_feed_url: Mapped[str | None] = mapped_column()
+    canonical_mp3_url: Mapped[str | None] = mapped_column()
+    bucket_mp3_path: Mapped[str | None] = mapped_column()
+
+    transcripts: Mapped[list[EpisodeTranscript]] = relationship(
+        back_populates="episode"
+    )
+
+    @hybrid_property
+    def has_fantasy_court(self) -> bool:
+        return "fantasy court" in self.description.lower()
+
+    @has_fantasy_court.expression
+    def has_fantasy_court(cls):
+        return func.lower(cls.description).contains("fantasy court")
+
+
+class EpisodeTranscript(Base, IndexedTimestampMixin):
+    __tablename__ = "episode_transcripts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    episode_id: Mapped[int] = mapped_column(ForeignKey("podcast_episodes.id"))
+
+    transcript_json: Mapped[dict] = mapped_column(JSONB)
+
+    episode: Mapped[PodcastEpisode] = relationship(back_populates="transcripts")
+
+    def transcript_obj(self) -> None:
+        # TODO: Define a pydantic model for the transcript structure and model_validate the transcript_json here
+        pass
+
+
+class Provenance(Base, IndexedTimestampMixin):
+    __tablename__ = "provenances"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task_name: Mapped[str] = mapped_column(index=True)
+    creator_name: Mapped[str] = mapped_column(index=True)
+    record_type: Mapped[str] = mapped_column(index=True)

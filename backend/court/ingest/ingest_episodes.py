@@ -157,14 +157,14 @@ def main(feed_url: str):
 
     episodes = parse_rss_feed(feed_url)
     console.print(
-        f"[bold green]✓[/bold green] Parsed [bold]{len(episodes)}[/bold] episodes from RSS feed\n"
+        f"[bold green]SUCCESS:[/bold green] Parsed [bold]{len(episodes)}[/bold] episodes from RSS feed\n"
     )
 
     db = get_session()
     try:
         inserted, updated = upsert_episodes(db, episodes, console)
         console.print(
-            f"\n[bold green]✓[/bold green] Upserted episodes: "
+            f"\n[bold green]SUCCESS:[/bold green] Upserted episodes: "
             f"[bold cyan]{inserted}[/bold cyan] inserted, "
             f"[bold yellow]{updated}[/bold yellow] updated\n"
         )

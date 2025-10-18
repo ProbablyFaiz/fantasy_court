@@ -1,5 +1,9 @@
 # CLAUDE.md
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## General Rules
+- **NEVER USE EMOJIS** - Do not use emojis in any code, comments, output, or commit messages.
+
 ## Commands
 - Run all tests: `cd backend && pytest`
 - Run frontend typechecking: `just typecheck`
