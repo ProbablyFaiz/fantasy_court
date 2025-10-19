@@ -17,7 +17,10 @@
     "includes": [
       "frontend/**/*",
       "!frontend/src/**/*.gen.ts",
-      "!frontend/node_modules/**/*"
+      "!frontend/node_modules/**/*",
+      "frontend-static/**/*",
+      "!frontend-static/node_modules/**/*",
+      "!frontend-static/src/**/*.gen.ts"
     ]
   },
   "json": {
@@ -32,7 +35,10 @@
     "includes": [
       "frontend/**/*",
       "!frontend/src/**/*.gen.ts",
-      "!frontend/node_modules/**/*"
+      "!frontend/node_modules/**/*",
+      "frontend-static/**/*",
+      "!frontend-static/node_modules/**/*",
+      "!frontend-static/src/**/*.gen.ts"
     ]
   },
   "javascript": {
