@@ -45,7 +45,9 @@ _RECORD_TYPE = "episode_transcripts"
 
 SPEAKER_SAMPLES_DIR = Path(__file__).parent / "speaker_samples"
 MAX_CHUNK_DURATION_SECONDS = 1200  # OpenAI limit is 1400s, use 1200s for safety
-SEGMENT_BUFFER_SECONDS = 180  # Add 3 minutes buffer on each side
+SEGMENT_BUFFER_SECONDS = (
+    300  # Add 5 minutes buffer on each side as timestamps are often inaccurate
+)
 
 _SPEAKER_NAMES = [
     {"name": "Craig Horlbeck", "file_name": "Craig.wav"},
@@ -303,24 +305,31 @@ async def transcribe_segment(
         )
         segment_start = time.time()
 
-        # Download full MP3 to temp file
-        full_mp3_data = bucket.read_file(episode.bucket_mp3_path, s3_client)
-        full_mp3_tmp = tempfile.NamedTemporaryFile(
-            mode="wb", suffix=".mp3", delete=False
-        )
-        full_mp3_tmp.write(full_mp3_data)
-        full_mp3_tmp.close()
-        full_mp3_path = Path(full_mp3_tmp.name)
+        # Wrap blocking I/O operations to run in thread pool for true async concurrency
+        def _do_segmentation_and_chunking():
+            # Download full MP3 to temp file
+            full_mp3_data = bucket.read_file(episode.bucket_mp3_path, s3_client)
+            full_mp3_tmp = tempfile.NamedTemporaryFile(
+                mode="wb", suffix=".mp3", delete=False
+            )
+            full_mp3_tmp.write(full_mp3_data)
+            full_mp3_tmp.close()
+            full_mp3_path = Path(full_mp3_tmp.name)
 
-        # Extract segment audio
-        segment_audio = extract_segment_audio(
-            full_mp3_path, segment.start_time_s, segment.end_time_s
-        )
-        full_mp3_path.unlink()  # Clean up full episode temp file
+            # Extract segment audio
+            segment_audio = extract_segment_audio(
+                full_mp3_path, segment.start_time_s, segment.end_time_s
+            )
+            full_mp3_path.unlink()  # Clean up full episode temp file
 
-        # Read the segment audio bytes for chunking
-        segment_mp3_data = segment_audio.path.read_bytes()
-        chunks = split_mp3_by_duration(segment_mp3_data)
+            # Read the segment audio bytes for chunking
+            segment_mp3_data = segment_audio.path.read_bytes()
+            chunks = split_mp3_by_duration(segment_mp3_data)
+
+            return segment_audio, chunks
+
+        # Run blocking operations in thread pool
+        segment_audio, chunks = await asyncio.to_thread(_do_segmentation_and_chunking)
 
         segment_elapsed = time.time() - segment_start
         CONSOLE.print(

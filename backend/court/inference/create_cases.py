@@ -158,7 +158,11 @@ BETTER (aim for this):
    - `<em>` for emphasis, case names, and Latin phrases
    - Standard HTML tags as appropriate
 
-Your extractions will be used to generate official-looking case documents, so maintain appropriate legal register throughout."""
+Your extractions will be used to generate official-looking case documents, so maintain appropriate legal register throughout.
+
+Do not include a 'parameter' or 'parameters' parent key in your tool use output; return the JSON directly with the 'cases' key
+in the top level.
+"""
 
 
 class CaseExtraction(BaseModel):
@@ -208,12 +212,12 @@ async def extract_fantasy_court_cases(
     Extract Fantasy Court cases from a segment transcript using Claude.
 
     Args:
-        segment: FantasyCourtSegment with transcript relationship loaded
+        segment: FantasyCourtSegment with transcript and episode relationships loaded
         client: Anthropic async client
         model: Claude model to use
 
     Returns:
-        List of FantasyCourtCase objects (without provenance_id set, not saved to DB)
+        List of FantasyCourtCase objects with docket numbers assigned (without provenance_id set, not saved to DB)
     """
     # Get the transcript - it should be eager-loaded by caller
     if not segment.transcript:
@@ -282,12 +286,14 @@ Please extract all distinct Fantasy Court cases from this segment. Remember that
     else:
         extraction = CaseExtractionResponse.model_validate(tool_use.input)
 
-    # Convert to FantasyCourtCase objects
+    # Convert to FantasyCourtCase objects and assign docket numbers
     cases = []
-    for case_data in extraction.cases:
+    for i, case_data in enumerate(extraction.cases, start=1):
+        docket_number = generate_docket_number(episode, i)
         case = FantasyCourtCase(
             episode_id=segment.episode_id,
             segment_id=segment.id,
+            docket_number=docket_number,
             start_time_s=case_data.start_time_s,
             end_time_s=case_data.end_time_s,
             fact_summary=case_data.fact_summary,
@@ -295,8 +301,7 @@ Please extract all distinct Fantasy Court cases from this segment. Remember that
             questions_presented_html=case_data.questions_presented_html,
             procedural_posture=case_data.procedural_posture,
             case_topics=case_data.case_topics,
-            # Note: docket_number and provenance_id will be set by caller
-            docket_number="",  # Placeholder - will be set by caller
+            # Note: provenance_id will be set by caller
         )
         cases.append(case)
 
@@ -330,6 +335,7 @@ async def process_segments_batch(
     provenance_id: int,
     model: str,
     concurrency: int,
+    commit_batch_size: int = 16,
 ) -> tuple[int, int]:
     """
     Process a batch of segments with async concurrency.
@@ -340,49 +346,69 @@ async def process_segments_batch(
         provenance_id: ID of provenance record
         model: Claude model to use
         concurrency: Number of parallel requests
+        commit_batch_size: Number of segments to commit at once
 
     Returns:
         Tuple of (cases_created, segments_processed)
     """
+    console = Console()
     client = anthropic.AsyncAnthropic(api_key=_ANTHROPIC_API_KEY)
     semaphore = asyncio.Semaphore(concurrency)
 
     async def process_one(segment: FantasyCourtSegment) -> list[FantasyCourtCase]:
         async with semaphore:
-            cases = await extract_fantasy_court_cases(segment, client, model)
+            try:
+                cases = await extract_fantasy_court_cases(segment, client, model)
 
-            # Get existing case count for this episode to determine starting case number
-            existing_count = db.execute(
-                sa.select(sa.func.count(FantasyCourtCase.id)).where(
-                    FantasyCourtCase.episode_id == segment.episode_id
+                # Assign provenance to all cases
+                for case in cases:
+                    case.provenance_id = provenance_id
+
+                return cases
+            except Exception as e:
+                console.print(
+                    f"[red]Error processing segment {segment.id} (episode {segment.episode_id}):[/red] {e}"
                 )
-            ).scalar_one()
+                return []
 
-            # Assign docket numbers and provenance
-            for i, case in enumerate(cases, start=existing_count + 1):
-                case.docket_number = generate_docket_number(segment.episode, i)
-                case.provenance_id = provenance_id
-
-            return cases
-
-    # Process all segments concurrently
+    # Process all segments concurrently, committing in batches
     tasks = [process_one(seg) for seg in segments]
-    all_cases = []
+    total_created = 0
+    pending_commits = []
+    failed_count = 0
 
     # Use tqdm to track progress
     pbar = tqdm.tqdm(total=len(segments), desc="Processing segments")
     for coro in asyncio.as_completed(tasks):
         cases = await coro
-        all_cases.extend(cases)
+
+        if not cases:
+            failed_count += 1
+        else:
+            pending_commits.extend(cases)
+
+        # Commit when batch is full
+        if len(pending_commits) >= commit_batch_size:
+            db.add_all(pending_commits)
+            db.commit()
+            total_created += len(pending_commits)
+            pending_commits = []
+
         pbar.update(1)
     pbar.close()
 
-    # Bulk insert cases
-    if all_cases:
-        db.add_all(all_cases)
+    # Commit any remaining cases
+    if pending_commits:
+        db.add_all(pending_commits)
         db.commit()
+        total_created += len(pending_commits)
 
-    return len(all_cases), len(segments)
+    if failed_count > 0:
+        console.print(
+            f"\n[yellow]Warning:[/yellow] {failed_count} segment(s) failed to process\n"
+        )
+
+    return total_created, len(segments)
 
 
 @click.command()

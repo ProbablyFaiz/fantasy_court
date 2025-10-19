@@ -26,7 +26,6 @@ from court.inference.create_cases import (
 )
 from court.inference.create_cases import (
     extract_fantasy_court_cases,
-    generate_docket_number,
 )
 from court.inference.create_segments import (
     _DEFAULT_MODEL as _DEFAULT_OPENAI_MODEL,
@@ -413,16 +412,8 @@ def extract_cases(segment_id: int, model: str, save: str):
                 record_type="fantasy_court_cases",
             )
 
-            # Get existing case count for this episode to determine starting case number
-            existing_count = session.execute(
-                sa.select(sa.func.count(FantasyCourtCase.id)).where(
-                    FantasyCourtCase.episode_id == episode.id
-                )
-            ).scalar_one()
-
-            # Assign docket numbers and provenance
-            for i, case in enumerate(cases, start=existing_count + 1):
-                case.docket_number = generate_docket_number(episode, i)
+            # Assign provenance to all cases
+            for case in cases:
                 case.provenance_id = provenance.id
 
             # Save to database
