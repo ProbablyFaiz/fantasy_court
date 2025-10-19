@@ -17,45 +17,32 @@ from court.db.models import (
     FantasyCourtCase,
     FantasyCourtSegment,
     PodcastEpisode,
-    Provenance,
 )
 from court.db.session import get_session
 from court.inference import create_cases as create_cases_module
 from court.inference import create_segments as create_segments_module
 from court.inference.create_cases import (
-    _CREATOR_NAME,
-    _RECORD_TYPE,
-    _TASK_NAME,
+    _DEFAULT_MODEL as _DEFAULT_CLAUDE_MODEL,
+)
+from court.inference.create_cases import (
     extract_fantasy_court_cases,
     generate_docket_number,
 )
-from court.inference.create_cases import (
-    _DEFAULT_MODEL as _DEFAULT_CLAUDE_MODEL,
-)
 from court.inference.create_segments import (
-    _CREATOR_NAME as _SEGMENTS_CREATOR_NAME,
-)
-from court.inference.create_segments import (
-    _RECORD_TYPE as _SEGMENTS_RECORD_TYPE,
-)
-from court.inference.create_segments import (
-    _TASK_NAME as _SEGMENTS_TASK_NAME,
+    _DEFAULT_MODEL as _DEFAULT_OPENAI_MODEL,
 )
 from court.inference.create_segments import (
     detect_fantasy_court_segment,
     seconds_to_timestamp,
 )
+from court.inference.utils import get_or_create_provenance, should_save_prompt
 from court.utils.print import CONSOLE
-
-_OPENAI_API_KEY = rl.utils.io.getenv("OPENAI_API_KEY")
-_ANTHROPIC_API_KEY = rl.utils.io.getenv("ANTHROPIC_API_KEY")
-_DEFAULT_MODEL = "gpt-5-mini"
 
 
 @click.group()
 def inference():
     """Fantasy Court inference utilities."""
-    pass
+    rl.utils.io.ensure_dotenv_loaded()
 
 
 @inference.command()
@@ -70,7 +57,7 @@ def inference():
     "--model",
     "-m",
     type=str,
-    default=_DEFAULT_MODEL,
+    default=_DEFAULT_OPENAI_MODEL,
     help="OpenAI model to use for segment detection",
 )
 @click.option(
@@ -108,7 +95,7 @@ def detect_segment(episode_id: int, model: str, save: str):
     CONSOLE.print(f"  [cyan]Model:[/cyan] {model}\n")
 
     # Create OpenAI client and detect segment
-    client = openai.AsyncOpenAI(api_key=_OPENAI_API_KEY)
+    client = openai.AsyncOpenAI()
 
     async def run_detection():
         return await detect_fantasy_court_segment(client, episode, model)
@@ -133,15 +120,7 @@ def detect_segment(episode_id: int, model: str, save: str):
         CONSOLE.print(f"  [cyan]Duration:[/cyan] {seconds_to_timestamp(duration)}")
 
         # Handle saving to database
-        should_save = False
-        if save == "yes":
-            should_save = True
-        elif save == "ask":
-            should_save = click.confirm(
-                "\nSave this segment to the database?", default=False
-            )
-
-        if should_save:
+        if should_save_prompt(save, "Save this segment to the database?"):
             # Check for existing segment for this episode
             existing_segment = session.execute(
                 sa.select(FantasyCourtSegment).where(
@@ -159,29 +138,16 @@ def detect_segment(episode_id: int, model: str, save: str):
                 CONSOLE.print(
                     "[yellow]This will be deleted to avoid duplicates.[/yellow]\n"
                 )
-
-                # Delete existing segment
                 session.delete(existing_segment)
                 session.flush()
 
             # Get or create provenance record
-            provenance = session.execute(
-                sa.select(Provenance).where(
-                    Provenance.task_name == _SEGMENTS_TASK_NAME,
-                    Provenance.creator_name == _SEGMENTS_CREATOR_NAME,
-                    Provenance.record_type == _SEGMENTS_RECORD_TYPE,
-                )
-            ).scalar_one_or_none()
-
-            if not provenance:
-                provenance = Provenance(
-                    task_name=_SEGMENTS_TASK_NAME,
-                    creator_name=_SEGMENTS_CREATOR_NAME,
-                    record_type=_SEGMENTS_RECORD_TYPE,
-                )
-                session.add(provenance)
-                session.flush()
-                session.refresh(provenance)
+            provenance = get_or_create_provenance(
+                session,
+                task_name="detect_segment",
+                creator_name=model,
+                record_type="fantasy_court_segments",
+            )
 
             # Assign provenance and save
             segment.provenance_id = provenance.id
@@ -352,7 +318,7 @@ def extract_cases(segment_id: int, model: str, save: str):
     CONSOLE.print(f"  [cyan]Model:[/cyan] {model}\n")
 
     # Create Anthropic client and extract cases
-    client = anthropic.AsyncAnthropic(api_key=_ANTHROPIC_API_KEY)
+    client = anthropic.AsyncAnthropic()
 
     async def run_extraction():
         return await extract_fantasy_court_cases(segment, client, model)
@@ -372,37 +338,35 @@ def extract_cases(segment_id: int, model: str, save: str):
             case_info = []
 
             # Header
-            if case.case_caption:
-                case_info.append(f"[bold white]{case.case_caption}[/bold white]\n")
+            case_info.append(
+                f"[bold white]{case.case_caption or '(no caption)'}[/bold white]\n"
+            )
 
             # Timestamps
+            duration = case.end_time_s - case.start_time_s
             case_info.append(
                 f"[cyan]Time:[/cyan] {seconds_to_timestamp(case.start_time_s)} - {seconds_to_timestamp(case.end_time_s)}"
             )
-            duration = case.end_time_s - case.start_time_s
             case_info.append(
                 f"[cyan]Duration:[/cyan] {seconds_to_timestamp(duration)}\n"
             )
 
             # Procedural posture
-            if case.procedural_posture:
-                case_info.append(
-                    f"[yellow]Procedural Posture:[/yellow] {case.procedural_posture}\n"
-                )
+            case_info.append(
+                f"[yellow]Procedural Posture:[/yellow] {case.procedural_posture or 'N/A'}\n"
+            )
 
             # Questions presented
-            if case.questions_presented_html:
-                case_info.append(
-                    f"[yellow]Questions Presented:[/yellow]\n{case.questions_presented_html}\n"
-                )
+            case_info.append(
+                f"[yellow]Questions Presented:[/yellow]\n{case.questions_presented_html or 'N/A'}\n"
+            )
 
             # Fact summary
             case_info.append(f"[yellow]Facts:[/yellow]\n{case.fact_summary}\n")
 
             # Topics
-            if case.case_topics:
-                topics_str = ", ".join(case.case_topics)
-                case_info.append(f"[magenta]Topics:[/magenta] {topics_str}")
+            topics_str = ", ".join(case.case_topics) if case.case_topics else "N/A"
+            case_info.append(f"[magenta]Topics:[/magenta] {topics_str}")
 
             CONSOLE.print(
                 Panel(
@@ -414,15 +378,7 @@ def extract_cases(segment_id: int, model: str, save: str):
             CONSOLE.print()
 
         # Handle saving to database
-        should_save = False
-        if save == "yes":
-            should_save = True
-        elif save == "ask":
-            should_save = click.confirm(
-                "\nSave these cases to the database?", default=False
-            )
-
-        if should_save:
+        if should_save_prompt(save, "Save these cases to the database?"):
             # Check for existing cases for this segment
             existing_cases = (
                 session.execute(
@@ -445,30 +401,17 @@ def extract_cases(segment_id: int, model: str, save: str):
                 CONSOLE.print(
                     "[yellow]These will be deleted to avoid duplicates.[/yellow]\n"
                 )
-
-                # Delete existing cases
                 for existing_case in existing_cases:
                     session.delete(existing_case)
                 session.flush()
 
             # Get or create provenance record
-            provenance = session.execute(
-                sa.select(Provenance).where(
-                    Provenance.task_name == _TASK_NAME,
-                    Provenance.creator_name == _CREATOR_NAME,
-                    Provenance.record_type == _RECORD_TYPE,
-                )
-            ).scalar_one_or_none()
-
-            if not provenance:
-                provenance = Provenance(
-                    task_name=_TASK_NAME,
-                    creator_name=_CREATOR_NAME,
-                    record_type=_RECORD_TYPE,
-                )
-                session.add(provenance)
-                session.flush()
-                session.refresh(provenance)
+            provenance = get_or_create_provenance(
+                session,
+                task_name="extract_cases",
+                creator_name=model,
+                record_type="fantasy_court_cases",
+            )
 
             # Get existing case count for this episode to determine starting case number
             existing_count = session.execute(

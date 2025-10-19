@@ -16,9 +16,9 @@ from court.db.models import (
     FantasyCourtCase,
     FantasyCourtSegment,
     PodcastEpisode,
-    Provenance,
 )
 from court.db.session import get_session
+from court.inference.utils import get_or_create_provenance
 
 _ANTHROPIC_API_KEY = rl.utils.io.getenv("ANTHROPIC_API_KEY")
 
@@ -412,23 +412,13 @@ def main(model: str, concurrency: int):
     db = get_session()
 
     # Create or get provenance record
-    provenance = db.execute(
-        sa.select(Provenance).where(
-            Provenance.task_name == _TASK_NAME,
-            Provenance.creator_name == _CREATOR_NAME,
-            Provenance.record_type == _RECORD_TYPE,
-        )
-    ).scalar_one_or_none()
-
-    if not provenance:
-        provenance = Provenance(
-            task_name=_TASK_NAME,
-            creator_name=_CREATOR_NAME,
-            record_type=_RECORD_TYPE,
-        )
-        db.add(provenance)
-        db.commit()
-        db.refresh(provenance)
+    provenance = get_or_create_provenance(
+        db,
+        _TASK_NAME,
+        _CREATOR_NAME,
+        _RECORD_TYPE,
+    )
+    db.commit()  # Commit to ensure provenance is persisted
 
     # Get segments that have transcripts but don't have cases yet
     segments_query = (
