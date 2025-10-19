@@ -170,6 +170,10 @@ class FantasyCourtOpinion(Base, IndexedTimestampMixin):
     pdf_path: Mapped[str | None] = mapped_column()
     """The path to the PDF file in the bucket. If None, the opinion has not been generated yet."""
 
+    agent_message_log: Mapped[list[dict] | None] = mapped_column(JSONB)
+    """The conversation history between the user and assistant during opinion drafting.
+    Stored as a list of message dicts with role and content. Useful for debugging and analysis."""
+
     case: Mapped[FantasyCourtCase] = relationship()
     provenance: Mapped[Provenance] = relationship()
 

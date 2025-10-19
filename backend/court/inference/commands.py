@@ -15,11 +15,13 @@ from sqlalchemy.orm import Session, selectinload
 from court.db.models import (
     EpisodeTranscript,
     FantasyCourtCase,
+    FantasyCourtOpinion,
     FantasyCourtSegment,
     PodcastEpisode,
 )
 from court.db.session import get_session
 from court.inference import create_cases as create_cases_module
+from court.inference import create_opinions as create_opinions_module
 from court.inference import create_segments as create_segments_module
 from court.inference.create_cases import (
     _DEFAULT_MODEL as _DEFAULT_CLAUDE_MODEL,
@@ -27,6 +29,7 @@ from court.inference.create_cases import (
 from court.inference.create_cases import (
     extract_fantasy_court_cases,
 )
+from court.inference.create_opinions import run_opinion_drafting_agent
 from court.inference.create_segments import (
     _DEFAULT_MODEL as _DEFAULT_OPENAI_MODEL,
 )
@@ -432,6 +435,176 @@ def extract_cases(segment_id: int, model: str, save: str):
             )
 
 
+@inference.command()
+@click.option(
+    "--case-id",
+    "-c",
+    type=int,
+    required=True,
+    help="ID of the Fantasy Court case to draft opinion for",
+)
+@click.option(
+    "--model",
+    "-m",
+    type=str,
+    default=_DEFAULT_CLAUDE_MODEL,
+    help="Claude model to use for opinion drafting",
+)
+@click.option(
+    "--save",
+    type=click.Choice(["yes", "ask", "no"], case_sensitive=False),
+    default="ask",
+    help="Whether to save drafted opinion to database",
+)
+def draft_opinion(case_id: int, model: str, save: str):
+    """Draft a Fantasy Court opinion for a specific case using Claude.
+
+    This command runs an AI agent that analyzes the case transcript, reviews
+    past opinions for precedent, and drafts a complete legal opinion with all
+    required fields. The opinion can optionally be saved to the database.
+    """
+    session: Session = get_session()
+
+    # Load the case with all required relationships
+    case = session.execute(
+        sa.select(FantasyCourtCase)
+        .where(FantasyCourtCase.id == case_id)
+        .options(
+            selectinload(FantasyCourtCase.episode),
+            selectinload(FantasyCourtCase.segment).selectinload(
+                FantasyCourtSegment.transcript
+            ),
+        )
+    ).scalar_one_or_none()
+
+    if not case:
+        raise click.ClickException(f"Case with ID {case_id} not found")
+
+    if not case.segment:
+        raise click.ClickException(f"Case {case_id} has no associated segment")
+
+    if not case.segment.transcript:
+        raise click.ClickException(
+            f"Case {case_id}'s segment has no transcript available"
+        )
+
+    episode = case.episode
+
+    # Display case info
+    CONSOLE.print("\n[bold blue]Drafting opinion for case:[/bold blue]")
+    CONSOLE.print(f"  [cyan]Case ID:[/cyan] {case.id}")
+    CONSOLE.print(f"  [cyan]Docket Number:[/cyan] {case.docket_number}")
+    CONSOLE.print(
+        f"  [cyan]Caption:[/cyan] {case.case_caption or '(no caption provided)'}"
+    )
+    CONSOLE.print(f"  [cyan]Episode:[/cyan] {episode.title}")
+    CONSOLE.print(f"  [cyan]Published:[/cyan] {episode.pub_date.strftime('%B %d, %Y')}")
+    CONSOLE.print(
+        f"  [cyan]Case Time:[/cyan] {seconds_to_timestamp(case.start_time_s)} - {seconds_to_timestamp(case.end_time_s)}"
+    )
+    if case.case_topics:
+        CONSOLE.print(f"  [cyan]Topics:[/cyan] {', '.join(case.case_topics)}")
+    CONSOLE.print(f"  [cyan]Model:[/cyan] {model}\n")
+
+    # Create Anthropic client and draft opinion
+    client = anthropic.AsyncAnthropic()
+
+    CONSOLE.print("[bold yellow]Starting opinion drafting agent...[/bold yellow]")
+    CONSOLE.print(
+        "[dim]The agent will analyze the transcript, review precedent, and draft the opinion.[/dim]"
+    )
+    CONSOLE.print("[dim]Progress will be shown below as the agent works...[/dim]\n")
+
+    opinion = asyncio.run(run_opinion_drafting_agent(session, client, model, case))
+
+    # Display results
+    CONSOLE.print("[bold blue]Displaying drafted opinion:[/bold blue]\n")
+
+    # Create panels for each part of the opinion
+    CONSOLE.print(
+        Panel(
+            opinion.authorship_html,
+            title="[bold]Authorship[/bold]",
+            border_style="blue",
+        )
+    )
+    CONSOLE.print()
+
+    CONSOLE.print(
+        Panel(
+            opinion.holding_statement_html,
+            title="[bold]Holding[/bold]",
+            border_style="green",
+        )
+    )
+    CONSOLE.print()
+
+    CONSOLE.print(
+        Panel(
+            opinion.reasoning_summary_html,
+            title="[bold]Reasoning Summary[/bold]",
+            border_style="yellow",
+        )
+    )
+    CONSOLE.print()
+
+    # For the opinion body, show a preview
+    body_lines = opinion.opinion_body_html.split("\n")
+    body_preview = "\n".join(body_lines[:20])
+    if len(body_lines) > 20:
+        body_preview += f"\n\n[dim]... ({len(body_lines) - 20} more lines)[/dim]"
+
+    CONSOLE.print(
+        Panel(
+            body_preview,
+            title="[bold]Opinion Body (Preview)[/bold]",
+            border_style="magenta",
+        )
+    )
+    CONSOLE.print()
+
+    # Handle saving to database
+    if should_save_prompt(save, "Save this opinion to the database?"):
+        # Check for existing opinion for this case
+        existing_opinion = session.execute(
+            sa.select(FantasyCourtOpinion).where(FantasyCourtOpinion.case_id == case_id)
+        ).scalar_one_or_none()
+
+        if existing_opinion:
+            CONSOLE.print(
+                f"\n[yellow]Found existing opinion for this case (Opinion ID {existing_opinion.id}).[/yellow]"
+            )
+            CONSOLE.print(
+                "[yellow]This will be deleted to avoid duplicates.[/yellow]\n"
+            )
+            session.delete(existing_opinion)
+            session.flush()
+
+        # Get or create provenance record
+        provenance = get_or_create_provenance(
+            session,
+            task_name="draft_opinion",
+            creator_name=model,
+            record_type="fantasy_court_opinions",
+        )
+
+        # Assign provenance and save
+        opinion.provenance_id = provenance.id
+        session.add(opinion)
+        session.commit()
+
+        CONSOLE.print("\n[bold green]Saved opinion to database![/bold green]")
+        CONSOLE.print(f"[cyan]Opinion ID:[/cyan] {opinion.id}\n")
+    else:
+        CONSOLE.print(
+            "\n[dim]Note: This opinion has not been saved to the database.[/dim]"
+        )
+        CONSOLE.print(
+            "[dim]To draft opinions for all cases, run: [blue]court inference create-opinions[/blue][/dim]\n"
+        )
+
+
 # Register batch processing commands from their respective modules
 inference.add_command(create_segments_module.main, name="create-segments")
 inference.add_command(create_cases_module.main, name="create-cases")
+inference.add_command(create_opinions_module.main, name="create-opinions")
