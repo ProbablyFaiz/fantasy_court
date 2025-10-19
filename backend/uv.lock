@@ -96,6 +96,21 @@ wheels = [
 ]
 
 [[package]]
+name = "assemblyai"
+version = "0.45.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "typing-extensions" },
+    { name = "websockets" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3c/c8/b56ee8d7e68fe4069bf0249a24535df920912e0bc5a9a4fd009a8dec91e4/assemblyai-0.45.1.tar.gz", hash = "sha256:dd166dd313f2092317d7bd5c195d24ce8cf60eefdbdf75633bd5e082742df717", size = 54282, upload-time = "2025-10-17T22:43:58.983Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/64/44/6f6ea7387c946d8ff8e8ff66fdbd4b63572e2f33c02818f50bb87df32514/assemblyai-0.45.1-py3-none-any.whl", hash = "sha256:458f90965d23c4858024364880e349c9b26e76e7abdbf34a5f8bf6df4c0450eb", size = 50343, upload-time = "2025-10-17T22:43:57.499Z" },
+]
+
+[[package]]
 name = "asttokens"
 version = "3.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -446,6 +461,7 @@ dependencies = [
     { name = "alembic" },
     { name = "alembic-utils" },
     { name = "anthropic" },
+    { name = "assemblyai" },
     { name = "beautifulsoup4" },
     { name = "boto3" },
     { name = "celery" },
@@ -483,6 +499,7 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.14.0" },
     { name = "alembic-utils", specifier = ">=0.8.8" },
     { name = "anthropic", specifier = ">=0.71.0" },
+    { name = "assemblyai", specifier = ">=0.45.1" },
     { name = "beautifulsoup4", specifier = ">=4.14.2" },
     { name = "boto3", specifier = ">=1.38.41" },
     { name = "celery", specifier = ">=5.5.3" },

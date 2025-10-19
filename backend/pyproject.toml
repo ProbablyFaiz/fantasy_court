@@ -32,6 +32,7 @@ dependencies = [
     "openai>=2.5.0",
     "pydub>=0.25.1",
     "anthropic>=0.71.0",
+    "assemblyai>=0.45.1",
 ]
 
 [dependency-groups]

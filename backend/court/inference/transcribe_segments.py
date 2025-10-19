@@ -1,27 +1,23 @@
 """
-Transcribe Fantasy Court segments using OpenAI's diarization API.
+Transcribe Fantasy Court segments using AssemblyAI's API with speaker identification.
 
 This script:
 1. Finds episodes with Fantasy Court segments
-2. Extracts the segment audio (with 1-minute buffer on each side)
-3. Splits audio into chunks (max 1200 seconds each) if needed
-4. Transcribes with speaker diarization using reference samples
-5. Combines segments and stores in database
+2. Creates presigned URLs for episode audio with time-based slicing
+3. Transcribes with speaker diarization using slam-1 model
+4. Identifies speaker names using LeMUR (Danny Heifetz, Danny Kelly, Craig Horlbeck, and guests)
+5. Stores transcripts with identified speakers in database
 """
 
 import asyncio
-import base64
-import tempfile
-from pathlib import Path
+import json
+import re
 
-import openai
+import assemblyai as aai
 import rl.utils.click as click
 import rl.utils.io
 import sqlalchemy as sa
 import tqdm
-from openai.types.audio import TranscriptionDiarized
-from pydantic import BaseModel
-from pydub import AudioSegment
 from rich.table import Table
 from sqlalchemy.orm import Session, selectinload
 
@@ -35,154 +31,17 @@ from court.db.session import get_session
 from court.utils import bucket
 from court.utils.print import CONSOLE
 
-_OPENAI_API_KEY = rl.utils.io.getenv("OPENAI_API_KEY")
+_ASSEMBLYAI_API_KEY = rl.utils.io.getenv("ASSEMBLYAI_API_KEY")
 
-_DEFAULT_MODEL = "gpt-4o-transcribe-diarize"
 _DEFAULT_CONCURRENCY = 8
-_CREATOR_NAME = "gpt-4o-transcribe-diarize"
+_CREATOR_NAME = "assemblyai"
 _TASK_NAME = "transcribe_segments"
 _RECORD_TYPE = "episode_transcripts"
 
-SPEAKER_SAMPLES_DIR = Path(__file__).parent / "speaker_samples"
-MAX_CHUNK_DURATION_SECONDS = 1200  # OpenAI limit is 1400s, use 1200s for safety
 SEGMENT_BUFFER_SECONDS = (
     300  # Add 5 minutes buffer on each side as timestamps are often inaccurate
 )
-
-_SPEAKER_NAMES = [
-    {"name": "Craig Horlbeck", "file_name": "Craig.wav"},
-    {"name": "Danny Kelly", "file_name": "DK.wav"},
-    {"name": "Danny Heifetz", "file_name": "Heifetz.wav"},
-]
-
-
-class AudioChunk(BaseModel):
-    """Represents an audio chunk file with its duration."""
-
-    path: Path
-    """Path to the temporary MP3 file for this chunk."""
-
-    duration_seconds: float
-    """Duration of this chunk in seconds."""
-
-
-class SegmentAudio(BaseModel):
-    """Represents extracted segment audio with offset information."""
-
-    path: Path
-    """Path to the temporary MP3 file for this segment."""
-
-    actual_start_s: float
-    """Actual start time in episode (may be < segment start due to buffer)."""
-
-    actual_end_s: float
-    """Actual end time in episode (may be > segment end due to buffer)."""
-
-
-def to_data_url(path: Path) -> str:
-    """Convert a file to a data URL for use with OpenAI API."""
-    with path.open("rb") as fh:
-        return "data:audio/wav;base64," + base64.b64encode(fh.read()).decode("utf-8")
-
-
-def split_mp3_by_duration(
-    mp3_data: bytes, max_duration_seconds: int = MAX_CHUNK_DURATION_SECONDS
-) -> list[AudioChunk]:
-    """
-    Split an MP3 file into multiple temporary files, each under max_duration_seconds.
-
-    Returns:
-        List of AudioChunk objects with path and duration
-    """
-    # Load the audio data
-    with tempfile.NamedTemporaryFile(
-        mode="wb", suffix=".mp3", delete=False
-    ) as tmp_input:
-        tmp_input.write(mp3_data)
-        tmp_input_path = Path(tmp_input.name)
-
-    audio = AudioSegment.from_mp3(tmp_input_path)
-    tmp_input_path.unlink()  # Clean up input temp file
-
-    total_duration_ms = len(audio)
-    max_duration_ms = max_duration_seconds * 1000
-
-    # If the original is already short enough, just return it as a single chunk
-    if total_duration_ms <= max_duration_ms:
-        tmp_file = tempfile.NamedTemporaryFile(mode="wb", suffix=".mp3", delete=False)
-        tmp_file.write(mp3_data)
-        tmp_file.close()
-        return [
-            AudioChunk(
-                path=Path(tmp_file.name), duration_seconds=total_duration_ms / 1000.0
-            )
-        ]
-
-    # Split into chunks
-    chunks = []
-    start_ms = 0
-
-    while start_ms < total_duration_ms:
-        end_ms = min(start_ms + max_duration_ms, total_duration_ms)
-        chunk = audio[start_ms:end_ms]
-        chunk_duration_ms = len(chunk)
-
-        # Export chunk to temp file
-        tmp_file = tempfile.NamedTemporaryFile(mode="wb", suffix=".mp3", delete=False)
-        chunk.export(tmp_file.name, format="mp3")
-        tmp_file.close()
-        chunks.append(
-            AudioChunk(
-                path=Path(tmp_file.name), duration_seconds=chunk_duration_ms / 1000.0
-            )
-        )
-
-        start_ms = end_ms
-
-    return chunks
-
-
-def extract_segment_audio(
-    full_mp3_path: Path,
-    start_time_s: float,
-    end_time_s: float,
-    buffer_seconds: int = SEGMENT_BUFFER_SECONDS,
-) -> SegmentAudio:
-    """
-    Extract a segment from full episode audio with buffer on each side.
-
-    Args:
-        full_mp3_path: Path to full episode MP3 file
-        start_time_s: Segment start time in seconds
-        end_time_s: Segment end time in seconds
-        buffer_seconds: Buffer to add on each side in seconds
-
-    Returns:
-        SegmentAudio with temp file path and actual start/end offsets
-    """
-    audio = AudioSegment.from_mp3(str(full_mp3_path))
-
-    # Calculate start/end with buffer (clamped to audio bounds)
-    start_ms = max(0, int((start_time_s - buffer_seconds) * 1000))
-    end_ms = min(len(audio), int((end_time_s + buffer_seconds) * 1000))
-
-    # Calculate actual start/end in seconds
-    actual_start_s = start_ms / 1000.0
-    actual_end_s = end_ms / 1000.0
-
-    # Extract segment
-    segment = audio[start_ms:end_ms]
-
-    # Export to temp file
-    tmp_output = tempfile.NamedTemporaryFile(mode="wb", suffix=".mp3", delete=False)
-    segment.export(tmp_output.name, format="mp3")
-    tmp_output.close()
-
-    return SegmentAudio(
-        path=Path(tmp_output.name),
-        actual_start_s=actual_start_s,
-        actual_end_s=actual_end_s,
-    )
+EXPECTED_SPEAKERS = 3  # Craig Horlbeck, Danny Kelly, Danny Heifetz
 
 
 def print_dry_run_table(segments: list[FantasyCourtSegment]) -> None:
@@ -253,164 +112,179 @@ def print_transcripts_table(db: Session, provenance_id: int, limit: int = 3) -> 
     CONSOLE.print()
 
 
-async def transcribe_segment(
-    client: openai.AsyncOpenAI,
-    segment: FantasyCourtSegment,
-    s3_client: bucket.boto3.client,
-    speaker_names: list[dict[str, str]],
-    speaker_references: list[str],
-) -> dict | None:
+async def identify_speakers_with_lemur(
+    utterances: list[aai.Utterance],
+) -> dict[str, str]:
     """
-    Transcribe a Fantasy Court segment with diarization.
+    Identify speaker names from transcript utterances using LeMUR.
 
     Args:
-        client: Async OpenAI client
-        segment: FantasyCourtSegment to transcribe (with episode eager-loaded)
-        s3_client: S3 client for bucket operations
-        speaker_names: List of speaker name dicts
-        speaker_references: List of speaker reference data URLs
+        utterances: List of AssemblyAI utterances with speaker labels
 
     Returns:
-        Combined transcript as dict, or None on error
+        Dictionary mapping speaker labels (e.g., 'A', 'B') to speaker names
+    """
+    import time
+
+    lemur_start = time.time()
+    CONSOLE.print("[cyan]Identifying speakers with LeMUR...[/cyan]")
+
+    # Create speaker-labeled text for LeMUR
+    text_with_speaker_labels = ""
+    for utt in utterances:
+        text_with_speaker_labels += f"Speaker {utt.speaker}:\n{utt.text}\n"
+
+    # Get unique speakers for the prompt
+    unique_speakers = {utt.speaker for utt in utterances}
+    speakers_list = ", ".join(f"Speaker {s}" for s in sorted(unique_speakers))
+
+    # Query LeMUR with a single request for all speakers
+    lemur_context = (
+        "This is a transcript from The Ringer Fantasy Football Show. "
+        "The regular hosts are Danny Heifetz (often referred to as just 'Heifetz'), "
+        "Danny Kelly (usually called 'DK'), and Craig Horlbeck. "
+        "Sometimes there are guest appearances by other people. "
+        f"Identify all speakers ({speakers_list}) from the transcript and return a JSON object "
+        "mapping each speaker label to their name. "
+        "If a speaker is a guest and not one of the regular hosts, extract and identify their name if mentioned."
+    )
+
+    result = await aai.Lemur().task_async(
+        "Identify all speakers in this transcript and return a JSON object mapping speaker labels to names. "
+        "Format: {'A': 'Full Name', 'B': 'Full Name', ...}",
+        input_text=text_with_speaker_labels,
+        final_model=aai.LemurModel.claude_sonnet_4_20250514,
+        context=lemur_context,
+    )
+
+    # Parse JSON response
+    speaker_mapping = {}
+    try:
+        speaker_mapping = json.loads(result.response)
+    except json.JSONDecodeError:
+        # Fallback: try to extract JSON from response text
+        json_match = re.search(r"\{[^}]+\}", result.response)
+        if json_match:
+            speaker_mapping = json.loads(json_match.group(0))
+        else:
+            CONSOLE.print(
+                "[yellow]Warning: Could not parse LeMUR response as JSON, using fallback[/yellow]"
+            )
+
+    lemur_elapsed = time.time() - lemur_start
+    CONSOLE.print(
+        f"[green]Speaker identification complete:[/green] {len(speaker_mapping)} speakers in {lemur_elapsed:.1f}s"
+    )
+    CONSOLE.print(f"[dim]  Identified: {speaker_mapping}[/dim]")
+
+    return speaker_mapping
+
+
+async def transcribe_segment(
+    segment: FantasyCourtSegment,
+    s3_client: bucket.boto3.client,
+) -> dict | None:
+    """
+    Transcribe a Fantasy Court segment using AssemblyAI with speaker identification.
+
+    Args:
+        segment: FantasyCourtSegment to transcribe (with episode eager-loaded)
+        s3_client: S3 client for bucket operations
+
+    Returns:
+        Transcript as dict with identified speaker names, or None on error
     """
     import time
 
     try:
         episode = segment.episode
 
-        # Load MP3 from bucket
         if not episode.bucket_mp3_path:
             CONSOLE.print(
                 f"[yellow]Warning:[/yellow] Episode {episode.id} has no bucket path, skipping"
             )
             return None
 
-        # Extract segment with buffer
         if segment.start_time_s is None or segment.end_time_s is None:
             CONSOLE.print(
                 f"[yellow]Warning:[/yellow] Segment {segment.id} has no start or end time, skipping"
             )
             return None
 
-        # Segmentation and chunking stage
+        # Calculate time range with buffer (in milliseconds for AssemblyAI)
         episode_duration = (
             episode.duration_seconds if episode.duration_seconds else "unknown"
         )
         segment_duration = segment.end_time_s - segment.start_time_s
-        segment_with_buffer_duration = segment_duration + (2 * SEGMENT_BUFFER_SECONDS)
+
+        # Apply buffer and clamp to episode bounds
+        actual_start_s = max(0, segment.start_time_s - SEGMENT_BUFFER_SECONDS)
+        actual_end_s = segment.end_time_s + SEGMENT_BUFFER_SECONDS
+        if episode.duration_seconds:
+            actual_end_s = min(actual_end_s, episode.duration_seconds)
+
+        # Convert to milliseconds for AssemblyAI
+        audio_start_from_ms = int(actual_start_s * 1000)
+        audio_end_at_ms = int(actual_end_s * 1000)
 
         CONSOLE.print(
-            f"[cyan]Segmenting and chunking:[/cyan] Episode {episode.id} '{episode.title[:40]}...' "
-            f"(episode: {episode_duration}s, segment: {segment_duration:.1f}s, with buffer: {segment_with_buffer_duration:.1f}s)"
-        )
-        segment_start = time.time()
-
-        # Wrap blocking I/O operations to run in thread pool for true async concurrency
-        def _do_segmentation_and_chunking():
-            # Download full MP3 to temp file
-            full_mp3_data = bucket.read_file(episode.bucket_mp3_path, s3_client)
-            full_mp3_tmp = tempfile.NamedTemporaryFile(
-                mode="wb", suffix=".mp3", delete=False
-            )
-            full_mp3_tmp.write(full_mp3_data)
-            full_mp3_tmp.close()
-            full_mp3_path = Path(full_mp3_tmp.name)
-
-            # Extract segment audio
-            segment_audio = extract_segment_audio(
-                full_mp3_path, segment.start_time_s, segment.end_time_s
-            )
-            full_mp3_path.unlink()  # Clean up full episode temp file
-
-            # Read the segment audio bytes for chunking
-            segment_mp3_data = segment_audio.path.read_bytes()
-            chunks = split_mp3_by_duration(segment_mp3_data)
-
-            return segment_audio, chunks
-
-        # Run blocking operations in thread pool
-        segment_audio, chunks = await asyncio.to_thread(_do_segmentation_and_chunking)
-
-        segment_elapsed = time.time() - segment_start
-        CONSOLE.print(
-            f"[green]Segmentation complete:[/green] {len(chunks)} chunk(s) created in {segment_elapsed:.1f}s"
+            f"[cyan]Transcribing:[/cyan] Episode {episode.id} '{episode.title[:40]}...' "
+            f"(episode: {episode_duration}s, segment: {segment_duration:.1f}s, range: {actual_start_s:.1f}s-{actual_end_s:.1f}s)"
         )
 
-        # Transcription stage
-        CONSOLE.print(
-            f"[cyan]Transcribing:[/cyan] {len(chunks)} chunk(s) for episode {episode.id}"
-        )
+        # Create presigned URL for full episode audio
+        audio_url = bucket.get_signed_url(episode.bucket_mp3_path, s3_client)
+
         transcribe_start = time.time()
 
-        # Transcribe all chunks in parallel
-        async def transcribe_chunk(
-            chunk: AudioChunk, chunk_index: int
-        ) -> tuple[int, TranscriptionDiarized, float]:
-            chunk_start = time.time()
-            with chunk.path.open("rb") as audio_file:
-                transcript: TranscriptionDiarized = (
-                    await client.audio.transcriptions.create(
-                        model="gpt-4o-transcribe-diarize",
-                        file=audio_file,
-                        response_format="diarized_json",
-                        chunking_strategy="auto",
-                        extra_body={
-                            "known_speaker_names": [s["name"] for s in speaker_names],
-                            "known_speaker_references": speaker_references,
-                        },
-                    )
-                )
-            chunk_elapsed = time.time() - chunk_start
-            return chunk_index, transcript, chunk_elapsed
+        # Configure transcriber with speaker labels and slam-1 model
+        config = aai.TranscriptionConfig(
+            speaker_labels=True,
+            speakers_expected=EXPECTED_SPEAKERS,
+            audio_start_from=audio_start_from_ms,
+            audio_end_at=audio_end_at_ms,
+            speech_model=aai.SpeechModel.slam_1,
+        )
+        transcriber = aai.Transcriber(config=config)
 
-        # Run all transcriptions in parallel
-        transcription_tasks = [
-            transcribe_chunk(chunk, i) for i, chunk in enumerate(chunks)
-        ]
-        transcription_results = await asyncio.gather(*transcription_tasks)
+        # Use async transcription
+        transcript: aai.Transcript = await transcriber.transcribe_async(audio_url)
 
-        # Process results in order and adjust timestamps
-        # All segments are offset from the start of the episode (segment_audio.actual_start_s)
-        all_segments = []
-        cumulative_time_offset = (
-            segment_audio.actual_start_s
-        )  # Start from buffered segment start in episode
-
-        for chunk_index, transcript, chunk_elapsed in transcription_results:
-            # Adjust timestamps to be relative to episode start
-            for seg in transcript.segments:
-                segment_dict = {
-                    "id": seg.id,
-                    "start": seg.start + cumulative_time_offset,
-                    "end": seg.end + cumulative_time_offset,
-                    "speaker": seg.speaker,
-                    "text": seg.text,
-                    "type": seg.type,
-                }
-                all_segments.append(segment_dict)
-
-            # Update offset based on actual chunk duration
-            cumulative_time_offset += chunks[chunk_index].duration_seconds
-
-            CONSOLE.print(
-                f"[dim]  Chunk {chunk_index + 1}/{len(chunks)}: {len(transcript.segments)} segments in {chunk_elapsed:.1f}s[/dim]"
-            )
+        if transcript.status == aai.TranscriptStatus.error:
+            raise Exception(f"Transcription failed: {transcript.error}")
 
         transcribe_elapsed = time.time() - transcribe_start
         CONSOLE.print(
-            f"[green]Transcription complete:[/green] {len(all_segments)} total segments in {transcribe_elapsed:.1f}s"
+            f"[green]Transcription complete:[/green] {len(transcript.utterances or [])} utterances in {transcribe_elapsed:.1f}s"
         )
 
-        # Clean up temp files
-        segment_audio.path.unlink()  # Clean up segment audio file
-        for chunk in chunks:
-            chunk.path.unlink()
+        # Identify speakers using LeMUR
+        speaker_mapping = {}
+        if transcript.utterances:
+            speaker_mapping = await identify_speakers_with_lemur(transcript.utterances)
 
-        # Combine into final transcript structure (without start/end times in JSON)
+        # Convert AssemblyAI format to our format with identified names
+        segments = []
+        if transcript.utterances:
+            for utterance in transcript.utterances:
+                speaker_name = speaker_mapping.get(
+                    utterance.speaker, f"Speaker {utterance.speaker}"
+                )
+                segments.append(
+                    {
+                        "id": len(segments),
+                        "start": utterance.start / 1000.0,  # Convert ms to seconds
+                        "end": utterance.end / 1000.0,
+                        "speaker": speaker_name,
+                        "text": utterance.text,
+                        "type": "utterance",
+                    }
+                )
+
         combined_transcript = {
-            "segments": all_segments,
-            "actual_start_s": segment_audio.actual_start_s,  # Metadata for return value
-            "actual_end_s": segment_audio.actual_end_s,  # Metadata for return value
+            "segments": segments,
+            "actual_start_s": actual_start_s,
+            "actual_end_s": actual_end_s,
         }
 
         return combined_transcript
@@ -442,25 +316,12 @@ async def process_segments_batch(
     Returns:
         Tuple of (transcripts_created, segments_processed)
     """
-    client = openai.AsyncOpenAI(api_key=_OPENAI_API_KEY)
     s3_client = bucket.get_bucket_client()
     semaphore = asyncio.Semaphore(concurrency)
 
-    # Load speaker references once
-    speaker_references = [
-        to_data_url(SPEAKER_SAMPLES_DIR / speaker["file_name"])
-        for speaker in _SPEAKER_NAMES
-    ]
-
     async def process_one(segment: FantasyCourtSegment) -> EpisodeTranscript | None:
         async with semaphore:
-            transcript_data = await transcribe_segment(
-                client,
-                segment,
-                s3_client,
-                _SPEAKER_NAMES,
-                speaker_references,
-            )
+            transcript_data = await transcribe_segment(segment, s3_client)
 
             if not transcript_data:
                 return None
@@ -534,9 +395,12 @@ async def process_segments_batch(
     help="Show what would be transcribed without actually transcribing",
 )
 def main(concurrency: int, limit: int | None, dry_run: bool):
-    """Transcribe Fantasy Court segments using OpenAI's diarization API."""
+    """Transcribe Fantasy Court segments using AssemblyAI's API."""
+    # Initialize AssemblyAI settings
+    aai.settings.api_key = _ASSEMBLYAI_API_KEY
+
     CONSOLE.print(
-        f"\n[bold blue]Transcribing Fantasy Court segments using:[/bold blue] {_DEFAULT_MODEL}"
+        "\n[bold blue]Transcribing Fantasy Court segments using:[/bold blue] AssemblyAI"
     )
     CONSOLE.print(f"[bold blue]Concurrency:[/bold blue] {concurrency}")
     if dry_run:
