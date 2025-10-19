@@ -20,3 +20,11 @@ This is a fun side project to build an official-seeming court website for the Ri
     - Generate PDF with weasyprint, store in bucket
 
 Idea: let opinion drafting agent build up a common law - go chronologically and give it access to a database of its previous opinions that it can cite, while staying faithful with the actual adjudication of the case in the episode!
+
+
+## Remaining TODOs
+
+- [ ] Entire frontend and static site generation - 10 points
+- [ ] Case creation from transcripts - 2 points
+- [ ] Opinion drafting agent - 10 points
+- [ ] PDF generation for opinions - 5 points

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime
 
-from pydantic import BaseModel, Field
 from sqlalchemy import ARRAY, ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
 from sqlalchemy.orm import (
@@ -11,6 +10,8 @@ from sqlalchemy.orm import (
     mapped_column,
     relationship,
 )
+
+from court.inference.transcript import Transcript
 
 
 class Base(DeclarativeBase):
@@ -189,30 +190,6 @@ class CaseCitation(Base, IndexedTimestampMixin):
     cited_case: Mapped[FantasyCourtCase] = relationship(
         foreign_keys=[cited_case_id], back_populates="citing_cases"
     )
-
-
-class TranscriptSegment(BaseModel):
-    """A single diarized segment within a transcript."""
-
-    id: str
-    """Unique identifier for the segment."""
-    start: float
-    """Start timestamp in seconds (relative to episode start)."""
-    end: float
-    """End timestamp in seconds (relative to episode start)."""
-    speaker: str
-    """Speaker label (either from known speakers or A, B, C, etc.)."""
-    text: str
-    """Transcript text for this segment."""
-    type: str = Field(default="transcript.text.segment")
-    """The type of the segment."""
-
-
-class Transcript(BaseModel):
-    """Full transcript with diarized segments."""
-
-    segments: list[TranscriptSegment]
-    """List of diarized transcript segments."""
 
 
 class Provenance(Base, IndexedTimestampMixin):

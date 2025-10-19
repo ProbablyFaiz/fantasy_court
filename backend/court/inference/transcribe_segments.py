@@ -22,7 +22,6 @@ import tqdm
 from openai.types.audio import TranscriptionDiarized
 from pydantic import BaseModel
 from pydub import AudioSegment
-from rich.console import Console
 from rich.table import Table
 from sqlalchemy.orm import Session, selectinload
 
@@ -34,6 +33,7 @@ from court.db.models import (
 )
 from court.db.session import get_session
 from court.utils import bucket
+from court.utils.print import CONSOLE
 
 _OPENAI_API_KEY = rl.utils.io.getenv("OPENAI_API_KEY")
 
@@ -45,7 +45,7 @@ _RECORD_TYPE = "episode_transcripts"
 
 SPEAKER_SAMPLES_DIR = Path(__file__).parent / "speaker_samples"
 MAX_CHUNK_DURATION_SECONDS = 1200  # OpenAI limit is 1400s, use 1200s for safety
-SEGMENT_BUFFER_SECONDS = 60  # Add 1 minute buffer on each side
+SEGMENT_BUFFER_SECONDS = 180  # Add 3 minutes buffer on each side
 
 _SPEAKER_NAMES = [
     {"name": "Craig Horlbeck", "file_name": "Craig.wav"},
@@ -183,7 +183,7 @@ def extract_segment_audio(
     )
 
 
-def print_dry_run_table(segments: list[FantasyCourtSegment], console: Console) -> None:
+def print_dry_run_table(segments: list[FantasyCourtSegment]) -> None:
     """Print a table showing what segments would be transcribed in dry run mode."""
     table = Table(
         title="Segments to Transcribe (Dry Run)",
@@ -209,13 +209,11 @@ def print_dry_run_table(segments: list[FantasyCourtSegment], console: Console) -
             f"... and {len(segments) - 10} more",
         )
 
-    console.print(table)
-    console.print()
+    CONSOLE.print(table)
+    CONSOLE.print()
 
 
-def print_transcripts_table(
-    db: Session, provenance_id: int, console: Console, limit: int = 3
-) -> None:
+def print_transcripts_table(db: Session, provenance_id: int, limit: int = 3) -> None:
     """Print a table showing recently created transcripts."""
     recent_transcripts = (
         db.execute(
@@ -249,8 +247,8 @@ def print_transcripts_table(
 
         table.add_row(transcript.episode.title, str(num_segments), start, end)
 
-    console.print(table)
-    console.print()
+    CONSOLE.print(table)
+    CONSOLE.print()
 
 
 async def transcribe_segment(
@@ -259,7 +257,6 @@ async def transcribe_segment(
     s3_client: bucket.boto3.client,
     speaker_names: list[dict[str, str]],
     speaker_references: list[str],
-    console: Console,
 ) -> dict | None:
     """
     Transcribe a Fantasy Court segment with diarization.
@@ -270,7 +267,6 @@ async def transcribe_segment(
         s3_client: S3 client for bucket operations
         speaker_names: List of speaker name dicts
         speaker_references: List of speaker reference data URLs
-        console: Rich console for output
 
     Returns:
         Combined transcript as dict, or None on error
@@ -282,14 +278,14 @@ async def transcribe_segment(
 
         # Load MP3 from bucket
         if not episode.bucket_mp3_path:
-            console.print(
+            CONSOLE.print(
                 f"[yellow]Warning:[/yellow] Episode {episode.id} has no bucket path, skipping"
             )
             return None
 
         # Extract segment with buffer
         if segment.start_time_s is None or segment.end_time_s is None:
-            console.print(
+            CONSOLE.print(
                 f"[yellow]Warning:[/yellow] Segment {segment.id} has no start or end time, skipping"
             )
             return None
@@ -301,7 +297,7 @@ async def transcribe_segment(
         segment_duration = segment.end_time_s - segment.start_time_s
         segment_with_buffer_duration = segment_duration + (2 * SEGMENT_BUFFER_SECONDS)
 
-        console.print(
+        CONSOLE.print(
             f"[cyan]Segmenting and chunking:[/cyan] Episode {episode.id} '{episode.title[:40]}...' "
             f"(episode: {episode_duration}s, segment: {segment_duration:.1f}s, with buffer: {segment_with_buffer_duration:.1f}s)"
         )
@@ -327,12 +323,12 @@ async def transcribe_segment(
         chunks = split_mp3_by_duration(segment_mp3_data)
 
         segment_elapsed = time.time() - segment_start
-        console.print(
+        CONSOLE.print(
             f"[green]Segmentation complete:[/green] {len(chunks)} chunk(s) created in {segment_elapsed:.1f}s"
         )
 
         # Transcription stage
-        console.print(
+        CONSOLE.print(
             f"[cyan]Transcribing:[/cyan] {len(chunks)} chunk(s) for episode {episode.id}"
         )
         transcribe_start = time.time()
@@ -387,12 +383,12 @@ async def transcribe_segment(
             # Update offset based on actual chunk duration
             cumulative_time_offset += chunks[chunk_index].duration_seconds
 
-            console.print(
+            CONSOLE.print(
                 f"[dim]  Chunk {chunk_index + 1}/{len(chunks)}: {len(transcript.segments)} segments in {chunk_elapsed:.1f}s[/dim]"
             )
 
         transcribe_elapsed = time.time() - transcribe_start
-        console.print(
+        CONSOLE.print(
             f"[green]Transcription complete:[/green] {len(all_segments)} total segments in {transcribe_elapsed:.1f}s"
         )
 
@@ -411,7 +407,7 @@ async def transcribe_segment(
         return combined_transcript
 
     except Exception as e:
-        console.print(
+        CONSOLE.print(
             f"[red]Error transcribing segment {segment.id} (episode {episode.id}):[/red] {e}"
         )
         return None
@@ -422,7 +418,6 @@ async def process_segments_batch(
     db: Session,
     provenance_id: int,
     concurrency: int,
-    console: Console,
     commit_batch_size: int = 16,
 ) -> tuple[int, int]:
     """
@@ -433,7 +428,6 @@ async def process_segments_batch(
         db: Database session
         provenance_id: ID of provenance record
         concurrency: Number of parallel requests
-        console: Rich console for output
         commit_batch_size: Number of transcripts to commit at once
 
     Returns:
@@ -457,7 +451,6 @@ async def process_segments_batch(
                 s3_client,
                 _SPEAKER_NAMES,
                 speaker_references,
-                console,
             )
 
             if not transcript_data:
@@ -533,15 +526,13 @@ async def process_segments_batch(
 )
 def main(concurrency: int, limit: int | None, dry_run: bool):
     """Transcribe Fantasy Court segments using OpenAI's diarization API."""
-    console = Console()
-
-    console.print(
+    CONSOLE.print(
         f"\n[bold blue]Transcribing Fantasy Court segments using:[/bold blue] {_DEFAULT_MODEL}"
     )
-    console.print(f"[bold blue]Concurrency:[/bold blue] {concurrency}")
+    CONSOLE.print(f"[bold blue]Concurrency:[/bold blue] {concurrency}")
     if dry_run:
-        console.print("[bold yellow]DRY RUN MODE[/bold yellow]")
-    console.print()
+        CONSOLE.print("[bold yellow]DRY RUN MODE[/bold yellow]")
+    CONSOLE.print()
 
     db = get_session()
 
@@ -591,15 +582,15 @@ def main(concurrency: int, limit: int | None, dry_run: bool):
 
         segments = db.execute(segments_query).scalars().all()
 
-        console.print(f"[bold]Found {len(segments)} segments to transcribe[/bold]\n")
+        CONSOLE.print(f"[bold]Found {len(segments)} segments to transcribe[/bold]\n")
 
         if not segments:
-            console.print("[yellow]No segments to transcribe[/yellow]\n")
+            CONSOLE.print("[yellow]No segments to transcribe[/yellow]\n")
             return
 
         # Display dry run table
         if dry_run:
-            print_dry_run_table(segments, console)
+            print_dry_run_table(segments)
             return
 
         # Process segments
@@ -609,18 +600,17 @@ def main(concurrency: int, limit: int | None, dry_run: bool):
                 db,
                 provenance.id,
                 concurrency,
-                console,
             )
         )
 
-        console.print(
+        CONSOLE.print(
             f"\n[bold green]SUCCESS:[/bold green] Created [bold cyan]{transcripts_created}[/bold cyan] "
             f"transcripts from [bold]{segments_processed}[/bold] segments processed\n"
         )
 
         # Display a table with created transcripts
         if transcripts_created > 0:
-            print_transcripts_table(db, provenance.id, console)
+            print_transcripts_table(db, provenance.id)
 
     finally:
         db.close()

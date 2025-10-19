@@ -6,12 +6,13 @@ import httpx
 import rl.utils.click as click
 import sqlalchemy as sa
 from pydantic import BaseModel
-from rich.console import Console
 from rich.progress import Progress
 from rich.table import Table
+from sqlalchemy.orm import Session
 
 from court.db.models import PodcastEpisode
 from court.db.session import get_session
+from court.utils.print import CONSOLE
 
 _DEFAULT_FEED_URL = "https://feeds.megaphone.fm/ringer-fantasy-football-show"
 
@@ -94,9 +95,7 @@ def parse_rss_feed(feed_url: str) -> list[ParsedEpisode]:
     return episodes
 
 
-def upsert_episodes(
-    db: sa.orm.Session, episodes: list[ParsedEpisode], console: Console
-) -> tuple[int, int]:
+def upsert_episodes(db: Session, episodes: list[ParsedEpisode]) -> tuple[int, int]:
     """
     Upsert episodes into the database.
 
@@ -117,7 +116,7 @@ def upsert_episodes(
     inserted = 0
     updated = 0
 
-    with Progress(console=console) as progress:
+    with Progress(console=CONSOLE) as progress:
         task = progress.add_task("Upserting episodes", total=len(episodes))
 
         for parsed_episode in episodes:
@@ -141,29 +140,19 @@ def upsert_episodes(
     return inserted, updated
 
 
-@click.command()
-@click.option(
-    "--feed-url",
-    "-f",
-    type=str,
-    default=_DEFAULT_FEED_URL,
-    help="RSS feed URL to fetch episodes from",
-)
-def main(feed_url: str):
+def main(feed_url: str = _DEFAULT_FEED_URL):
     """Fetch episodes from RSS feed and populate the podcast_episodes table."""
-    console = Console()
-
-    console.print(f"\n[bold blue]Fetching episodes from:[/bold blue] {feed_url}")
+    CONSOLE.print(f"\n[bold blue]Fetching episodes from:[/bold blue] {feed_url}")
 
     episodes = parse_rss_feed(feed_url)
-    console.print(
+    CONSOLE.print(
         f"[bold green]SUCCESS:[/bold green] Parsed [bold]{len(episodes)}[/bold] episodes from RSS feed\n"
     )
 
     db = get_session()
     try:
-        inserted, updated = upsert_episodes(db, episodes, console)
-        console.print(
+        inserted, updated = upsert_episodes(db, episodes)
+        CONSOLE.print(
             f"\n[bold green]SUCCESS:[/bold green] Upserted episodes: "
             f"[bold cyan]{inserted}[/bold cyan] inserted, "
             f"[bold yellow]{updated}[/bold yellow] updated\n"
@@ -197,11 +186,24 @@ def main(feed_url: str):
             )
             table.add_row(episode.title, pub_date_str, duration_str)
 
-        console.print(table)
-        console.print()
+        CONSOLE.print(table)
+        CONSOLE.print()
     finally:
         db.close()
 
 
+@click.command()
+@click.option(
+    "--feed-url",
+    "-f",
+    type=str,
+    default=_DEFAULT_FEED_URL,
+    help="RSS feed URL to fetch episodes from",
+)
+def cli(feed_url: str):
+    """Fetch episodes from RSS feed and populate the podcast_episodes table."""
+    main(feed_url)
+
+
 if __name__ == "__main__":
-    main()
+    cli()

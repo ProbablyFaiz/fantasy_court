@@ -1,13 +1,13 @@
 import httpx
 import rl.utils.click as click
 import sqlalchemy as sa
-from rich.console import Console
 from rich.progress import Progress, TaskID
 from rich.table import Table
 
 from court.db.models import PodcastEpisode
 from court.db.session import get_session
 from court.utils import bucket
+from court.utils.print import CONSOLE
 
 
 def generate_bucket_path(episode: PodcastEpisode) -> str:
@@ -24,7 +24,6 @@ def generate_bucket_path(episode: PodcastEpisode) -> str:
 def download_episode_mp3(
     episode: PodcastEpisode,
     s3_client: bucket.boto3.client,
-    console: Console,
     progress: Progress,
     task: TaskID,
 ) -> bool:
@@ -35,7 +34,7 @@ def download_episode_mp3(
         True if successful, False otherwise
     """
     if not episode.canonical_mp3_url:
-        console.print(
+        CONSOLE.print(
             f"[yellow]WARNING:[/yellow] Episode '{episode.title}' has no canonical MP3 URL"
         )
         return False
@@ -71,29 +70,13 @@ def download_episode_mp3(
         return True
 
     except Exception as e:
-        console.print(f"[red]ERROR:[/red] Failed to download {episode.title}: {e}")
+        CONSOLE.print(f"[red]ERROR:[/red] Failed to download {episode.title}: {e}")
         return False
 
 
-@click.command()
-@click.option(
-    "--limit",
-    "-l",
-    type=int,
-    default=None,
-    help="Maximum number of episodes to download",
-)
-@click.option(
-    "--dry-run",
-    "-d",
-    is_flag=True,
-    help="Show what would be downloaded without actually downloading",
-)
-def main(limit: int | None, dry_run: bool):
+def main(limit: int | None = None, dry_run: bool = False):
     """Download episode MP3s to S3 bucket for episodes without a bucket path."""
-    console = Console()
-
-    console.print("\n[bold blue]Fetching episodes without bucket paths...[/bold blue]")
+    CONSOLE.print("\n[bold blue]Fetching episodes without bucket paths...[/bold blue]")
 
     db = get_session()
     try:
@@ -108,12 +91,12 @@ def main(limit: int | None, dry_run: bool):
 
         episodes = db.execute(query).scalars().all()
 
-        console.print(
+        CONSOLE.print(
             f"[bold green]SUCCESS:[/bold green] Found [bold]{len(episodes)}[/bold] episodes to download\n"
         )
 
         if len(episodes) == 0:
-            console.print("[green]No episodes to download![/green]\n")
+            CONSOLE.print("[green]No episodes to download![/green]\n")
             return
 
         if dry_run:
@@ -133,8 +116,8 @@ def main(limit: int | None, dry_run: bool):
             if len(episodes) > 10:
                 table.add_row("...", "...", f"... and {len(episodes) - 10} more")
 
-            console.print(table)
-            console.print()
+            CONSOLE.print(table)
+            CONSOLE.print()
             return
 
         # Initialize S3 client
@@ -144,12 +127,12 @@ def main(limit: int | None, dry_run: bool):
         successful = 0
         failed = 0
 
-        with Progress(console=console) as progress:
+        with Progress(console=CONSOLE) as progress:
             overall_task = progress.add_task("Processing episodes", total=len(episodes))
 
             for episode in episodes:
                 success = download_episode_mp3(
-                    episode, s3_client, console, progress, overall_task
+                    episode, s3_client, progress, overall_task
                 )
 
                 if success:
@@ -162,7 +145,7 @@ def main(limit: int | None, dry_run: bool):
 
                 progress.update(overall_task, advance=1)
 
-        console.print(
+        CONSOLE.print(
             f"\n[bold green]SUCCESS:[/bold green] Download complete: "
             f"[bold cyan]{successful}[/bold cyan] successful, "
             f"[bold red]{failed}[/bold red] failed\n"
@@ -197,12 +180,31 @@ def main(limit: int | None, dry_run: bool):
                 )
                 table.add_row(episode.title, pub_date_str, episode.bucket_mp3_path)
 
-            console.print(table)
-            console.print()
+            CONSOLE.print(table)
+            CONSOLE.print()
 
     finally:
         db.close()
 
 
+@click.command()
+@click.option(
+    "--limit",
+    "-l",
+    type=int,
+    default=None,
+    help="Maximum number of episodes to download",
+)
+@click.option(
+    "--dry-run",
+    "-d",
+    is_flag=True,
+    help="Show what would be downloaded without actually downloading",
+)
+def cli(limit: int | None, dry_run: bool):
+    """Download episode MP3s to S3 bucket for episodes without a bucket path."""
+    main(limit, dry_run)
+
+
 if __name__ == "__main__":
-    main()
+    cli()

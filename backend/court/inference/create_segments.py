@@ -20,11 +20,13 @@ import rl.utils.io
 import sqlalchemy as sa
 import tqdm
 from pydantic import BaseModel, Field
-from rich.console import Console
 from rich.table import Table
+from rl.utils import LOGGER
+from sqlalchemy.orm import Session
 
 from court.db.models import FantasyCourtSegment, PodcastEpisode, Provenance
 from court.db.session import get_session
+from court.utils.print import CONSOLE
 
 _OPENAI_API_KEY = rl.utils.io.getenv("OPENAI_API_KEY")
 
@@ -127,9 +129,9 @@ async def detect_fantasy_court_segment(
     client: openai.AsyncOpenAI,
     episode: PodcastEpisode,
     model: str,
-) -> FantasyCourtSegmentDetection:
+) -> FantasyCourtSegment | None:
     """
-    Use GPT-5-mini to detect Fantasy Court segment in an episode.
+    Use GPT-5-mini to detect Fantasy Court segment in an episode and create segment record.
 
     Args:
         client: Async OpenAI client
@@ -137,7 +139,7 @@ async def detect_fantasy_court_segment(
         model: OpenAI model to use
 
     Returns:
-        Detection results with timestamps
+        FantasyCourtSegment (without provenance set) if found and valid, None otherwise
     """
     # Format episode duration
     duration_str = (
@@ -166,16 +168,81 @@ Does this episode contain a Fantasy Court segment? If yes, extract the start and
         response_format=FantasyCourtSegmentDetection,
     )
 
-    return completion.choices[0].message.parsed
+    detection = completion.choices[0].message.parsed
+
+    if not detection.has_fantasy_court:
+        return None
+
+    # Parse timestamps to seconds
+    if detection.start_timestamp:
+        start_seconds = parse_timestamp_to_seconds(detection.start_timestamp)
+    else:
+        # Shouldn't happen if has_fantasy_court is True, but handle gracefully
+        return None
+
+    if detection.end_timestamp:
+        end_seconds = parse_timestamp_to_seconds(detection.end_timestamp)
+    elif episode.duration_seconds:
+        # No end timestamp means segment goes to end of episode
+        end_seconds = float(episode.duration_seconds)
+    else:
+        # Can't determine end time
+        return None
+
+    # Validate and cap timestamps
+    if start_seconds < 0:
+        LOGGER.warning(
+            f"Episode {episode.id} has negative start time {start_seconds}s, skipping"
+        )
+        return None
+
+    if end_seconds < 0:
+        LOGGER.warning(
+            f"Episode {episode.id} has negative end time {end_seconds}s, skipping"
+        )
+        return None
+
+    if start_seconds >= end_seconds:
+        LOGGER.warning(
+            f"Episode {episode.id} has start time {start_seconds}s >= end time {end_seconds}s, skipping"
+        )
+        return None
+
+    # Cap timestamps to episode duration if available
+    if episode.duration_seconds:
+        if start_seconds > episode.duration_seconds:
+            LOGGER.warning(
+                f"Episode {episode.id} start time {start_seconds}s exceeds duration {episode.duration_seconds}s, capping to duration"
+            )
+            start_seconds = float(episode.duration_seconds)
+
+        if end_seconds > episode.duration_seconds:
+            LOGGER.warning(
+                f"Episode {episode.id} end time {end_seconds}s exceeds duration {episode.duration_seconds}s, capping to duration"
+            )
+            end_seconds = float(episode.duration_seconds)
+
+        # Re-check after capping
+        if start_seconds >= end_seconds:
+            LOGGER.warning(
+                f"Episode {episode.id} has invalid segment after capping, skipping"
+            )
+            return None
+
+    # Create and return segment record (without provenance - caller will set it)
+    return FantasyCourtSegment(
+        episode_id=episode.id,
+        start_time_s=start_seconds,
+        end_time_s=end_seconds,
+    )
 
 
 async def process_episodes_batch(
     episodes: list[PodcastEpisode],
-    db: sa.orm.Session,
+    db: Session,
     provenance_id: int,
     model: str,
     concurrency: int,
-    console: Console,
 ) -> tuple[int, int]:
     """
     Process a batch of episodes with async concurrency.
@@ -186,7 +253,6 @@ async def process_episodes_batch(
         provenance_id: ID of provenance record
         model: OpenAI model to use
         concurrency: Number of parallel requests
-        console: Rich console for output
 
     Returns:
         Tuple of (segments_created, episodes_processed)
@@ -197,82 +263,13 @@ async def process_episodes_batch(
     async def process_one(episode: PodcastEpisode) -> FantasyCourtSegment | None:
         async with semaphore:
             try:
-                detection = await detect_fantasy_court_segment(client, episode, model)
-
-                if not detection.has_fantasy_court:
-                    return None
-
-                # Parse timestamps to seconds
-                if detection.start_timestamp:
-                    start_seconds = parse_timestamp_to_seconds(
-                        detection.start_timestamp
-                    )
-                else:
-                    # Shouldn't happen if has_fantasy_court is True, but handle gracefully
-                    return None
-
-                if detection.end_timestamp:
-                    end_seconds = parse_timestamp_to_seconds(detection.end_timestamp)
-                elif episode.duration_seconds:
-                    # No end timestamp means segment goes to end of episode
-                    end_seconds = float(episode.duration_seconds)
-                else:
-                    # Can't determine end time
-                    return None
-
-                # Validate and cap timestamps
-                if start_seconds < 0:
-                    console.print(
-                        f"[yellow]Warning:[/yellow] Episode {episode.id} has negative start time {start_seconds}s, skipping"
-                    )
-                    return None
-
-                if end_seconds < 0:
-                    console.print(
-                        f"[yellow]Warning:[/yellow] Episode {episode.id} has negative end time {end_seconds}s, skipping"
-                    )
-                    return None
-
-                if start_seconds >= end_seconds:
-                    console.print(
-                        f"[yellow]Warning:[/yellow] Episode {episode.id} has start time {start_seconds}s >= end time {end_seconds}s, skipping"
-                    )
-                    return None
-
-                # Cap timestamps to episode duration if available
-                if episode.duration_seconds:
-                    if start_seconds > episode.duration_seconds:
-                        console.print(
-                            f"[yellow]Warning:[/yellow] Episode {episode.id} start time {start_seconds}s exceeds duration {episode.duration_seconds}s, capping to duration"
-                        )
-                        start_seconds = float(episode.duration_seconds)
-
-                    if end_seconds > episode.duration_seconds:
-                        console.print(
-                            f"[yellow]Warning:[/yellow] Episode {episode.id} end time {end_seconds}s exceeds duration {episode.duration_seconds}s, capping to duration"
-                        )
-                        end_seconds = float(episode.duration_seconds)
-
-                    # Re-check after capping
-                    if start_seconds >= end_seconds:
-                        console.print(
-                            f"[yellow]Warning:[/yellow] Episode {episode.id} has invalid segment after capping, skipping"
-                        )
-                        return None
-
-                # Create segment record
-                segment = FantasyCourtSegment(
-                    episode_id=episode.id,
-                    start_time_s=start_seconds,
-                    end_time_s=end_seconds,
-                    provenance_id=provenance_id,
-                )
-
+                segment = await detect_fantasy_court_segment(client, episode, model)
+                if segment:
+                    segment.provenance_id = provenance_id
                 return segment
-
             except Exception as e:
-                console.print(
-                    f"[red]Error processing episode {episode.id} ({episode.title}):[/red] {e}"
+                LOGGER.error(
+                    f"Error processing episode {episode.id} ({episode.title}): {e}"
                 )
                 return None
 
@@ -314,12 +311,10 @@ async def process_episodes_batch(
 )
 def main(model: str, concurrency: int):
     """Detect and create Fantasy Court segment records using GPT-5-mini."""
-    console = Console()
-
-    console.print(
+    CONSOLE.print(
         f"\n[bold blue]Creating Fantasy Court segments using:[/bold blue] {model}"
     )
-    console.print(f"[bold blue]Concurrency:[/bold blue] {concurrency}\n")
+    CONSOLE.print(f"[bold blue]Concurrency:[/bold blue] {concurrency}\n")
 
     db = get_session()
 
@@ -353,22 +348,20 @@ def main(model: str, concurrency: int):
 
         episodes = db.execute(episodes_query).scalars().all()
 
-        console.print(
+        CONSOLE.print(
             f"[bold]Found {len(episodes)} episodes without Fantasy Court segments[/bold]\n"
         )
 
         if not episodes:
-            console.print("[yellow]No episodes to process[/yellow]\n")
+            CONSOLE.print("[yellow]No episodes to process[/yellow]\n")
             return
 
         # Process episodes
         segments_created, episodes_processed = asyncio.run(
-            process_episodes_batch(
-                episodes, db, provenance.id, model, concurrency, console
-            )
+            process_episodes_batch(episodes, db, provenance.id, model, concurrency)
         )
 
-        console.print(
+        CONSOLE.print(
             f"\n[bold green]SUCCESS:[/bold green] Created [bold cyan]{segments_created}[/bold cyan] "
             f"segments from [bold]{episodes_processed}[/bold] episodes processed\n"
         )
@@ -411,8 +404,8 @@ def main(model: str, concurrency: int):
 
                 table.add_row(episode.title, start_str, end_str, duration_str)
 
-            console.print(table)
-            console.print()
+            CONSOLE.print(table)
+            CONSOLE.print()
     finally:
         db.close()
 
