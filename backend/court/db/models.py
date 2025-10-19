@@ -143,6 +143,22 @@ class FantasyCourtCase(Base, IndexedTimestampMixin):
     opinion: Mapped[FantasyCourtOpinion | None] = relationship(
         back_populates="case", uselist=False
     )
+
+    # Direct access to cited/citing cases via secondary relationship
+    cases_cited: Mapped[list[FantasyCourtCase]] = relationship(
+        secondary="case_citations",
+        primaryjoin="FantasyCourtCase.id == CaseCitation.citing_case_id",
+        secondaryjoin="CaseCitation.cited_case_id == FantasyCourtCase.id",
+        viewonly=True,
+    )
+    cases_citing: Mapped[list[FantasyCourtCase]] = relationship(
+        secondary="case_citations",
+        primaryjoin="FantasyCourtCase.id == CaseCitation.cited_case_id",
+        secondaryjoin="CaseCitation.citing_case_id == FantasyCourtCase.id",
+        viewonly=True,
+    )
+
+    # Access to citation objects (for metadata if needed)
     citing_cases: Mapped[list[CaseCitation]] = relationship(
         foreign_keys="CaseCitation.cited_case_id", back_populates="cited_case"
     )

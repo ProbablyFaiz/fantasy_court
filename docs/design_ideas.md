@@ -25,6 +25,7 @@ Idea: let opinion drafting agent build up a common law - go chronologically and 
 ## Remaining TODOs
 
 - [ ] Entire frontend and static site generation - 10 points
-- [ ] Case creation from transcripts - 2 points
-- [ ] Opinion drafting agent - 10 points
 - [ ] PDF generation for opinions - 5 points
+- [ ]
+- [x] Case creation from transcripts - 2 points
+- [x] Opinion drafting agent - 10 points

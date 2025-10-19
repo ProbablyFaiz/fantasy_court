@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import math
 from datetime import datetime
 from typing import Generic, TypeVar
@@ -46,7 +48,7 @@ class EpisodeItem(EpisodeBase):
 class EpisodeRead(EpisodeBase):
     """Full episode with related cases."""
 
-    fantasy_court_cases: list["CaseItem"]
+    fantasy_court_cases: list[CaseItem]
 
 
 # Case interfaces
@@ -77,25 +79,13 @@ class CitedCaseItem(ApiModel):
     episode_id: int
 
 
-class CitedCaseRelation(ApiModel):
-    """Citation where we show the cited case."""
-
-    cited_case: CitedCaseItem
-
-
-class CitingCaseRelation(ApiModel):
-    """Citation where we show the citing case."""
-
-    citing_case: CitedCaseItem
-
-
 class CaseRead(CaseBase):
     """Full case with episode and opinion."""
 
-    episode: EpisodeBase
-    opinion: "OpinionBase | None"
-    cited_cases: list[CitedCaseRelation]
-    citing_cases: list[CitingCaseRelation]
+    episode: EpisodeItem
+    opinion: OpinionItem | None
+    cases_cited: list[CitedCaseItem]
+    cases_citing: list[CitedCaseItem]
 
 
 # Opinion interfaces
@@ -110,7 +100,7 @@ class OpinionBase(ApiModel):
 class OpinionItem(OpinionBase):
     """Opinion in list views."""
 
-    case: CaseBase
+    case: CaseItem
 
 
 class OpinionRead(OpinionBase):

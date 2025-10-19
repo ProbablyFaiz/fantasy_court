@@ -6,7 +6,6 @@ from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session, selectinload
 
 from court.db.models import (
-    CaseCitation,
     FantasyCourtCase,
     FantasyCourtOpinion,
     PodcastEpisode,
@@ -40,12 +39,8 @@ def get_case(db: Annotated[Session, Depends(get_db)], case_id: int) -> FantasyCo
         .options(
             selectinload(FantasyCourtCase.episode),
             selectinload(FantasyCourtCase.opinion),
-            selectinload(FantasyCourtCase.cited_cases).selectinload(
-                CaseCitation.cited_case
-            ),
-            selectinload(FantasyCourtCase.citing_cases).selectinload(
-                CaseCitation.citing_case
-            ),
+            selectinload(FantasyCourtCase.cases_cited),
+            selectinload(FantasyCourtCase.cases_citing),
         )
     )
     case = db.execute(query).scalar_one_or_none()

@@ -378,9 +378,11 @@ def _list_past_opinions(db: Session) -> str:
         )
         if case.case_topics:
             lines.append(f"Topics: {', '.join(case.case_topics)}")
-        lines.append(f"Fact Summary: {case.fact_summary}")
+        lines.append(f"Questions Presented: {case.questions_presented_html}")
         lines.append(f"Holding: {opinion.holding_statement_html}")
-        lines.append(f"Reasoning Summary: {opinion.reasoning_summary_html}")
+        lines.append(
+            f"Topics: {', '.join(case.case_topics) if case.case_topics else '(none)'}"
+        )
         lines.append(f"Authorship: {opinion.authorship_html}")
         lines.append("")  # blank line between opinions
 
@@ -969,9 +971,7 @@ def main(model: str, concurrency: int):
 
     cases: list[FantasyCourtCase] = db.execute(cases_query).scalars().all()
 
-    console.print(
-        f"[bold]Found {len(cases)} cases with transcripts but no opinions. First case date: {cases[0].episode.pub_date.strftime('%B %d, %Y')}[/bold]\n"
-    )
+    console.print(f"[bold]Found {len(cases)} cases with transcripts but no opinions.\n")
 
     if not cases:
         console.print("[yellow]No cases to process[/yellow]\n")
