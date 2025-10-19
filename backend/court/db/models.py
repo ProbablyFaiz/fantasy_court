@@ -170,6 +170,9 @@ class FantasyCourtOpinion(Base, IndexedTimestampMixin):
     pdf_path: Mapped[str | None] = mapped_column()
     """The path to the PDF file in the bucket. If None, the opinion has not been generated yet."""
 
+    case: Mapped[FantasyCourtCase] = relationship()
+    provenance: Mapped[Provenance] = relationship()
+
 
 class CaseCitation(Base, IndexedTimestampMixin):
     __tablename__ = "case_citations"

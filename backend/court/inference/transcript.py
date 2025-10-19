@@ -111,3 +111,24 @@ class Transcript(BaseModel):
     def __str__(self) -> str:
         """String representation with timestamps."""
         return self.to_string(include_timestamps=True)
+
+    def slice(self, start_s: float, end_s: float) -> "Transcript":
+        """
+        Return a new Transcript containing only segments within the specified time range.
+
+        Segments that overlap with the range [start_s, end_s] are included.
+        Original timestamps are preserved.
+
+        Args:
+            start_s: Start time in seconds
+            end_s: End time in seconds
+
+        Returns:
+            New Transcript object with filtered segments
+        """
+        filtered_segments = [
+            segment
+            for segment in self.segments
+            if segment.end > start_s and segment.start < end_s
+        ]
+        return Transcript(segments=filtered_segments)
