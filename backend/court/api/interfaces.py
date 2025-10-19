@@ -4,8 +4,6 @@ from typing import Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict, computed_field
 
-from court.db.models import TaskPriority
-
 
 class ApiModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -29,32 +27,94 @@ class PaginatedBase(ApiModel, Generic[DataT]):
         return math.ceil(self.total / self.size) if self.size > 0 else 0
 
 
-class TaskCreate(ApiModel):
-    title: str
-    description: str | None = None
-    priority: TaskPriority = TaskPriority.MEDIUM
-
-
-class TaskBase(ApiModel):
+# Episode interfaces
+class EpisodeBase(ApiModel):
     id: int
+    guid: str
     title: str
-    completed: bool
-    priority: TaskPriority
-    description: str | None
-    created_at: datetime
-    updated_at: datetime
+    description_html: str | None
+    pub_date: datetime
+    duration_seconds: int | None
 
 
-class TaskRead(TaskBase):
+class EpisodeItem(EpisodeBase):
+    """Episode in list views."""
+
     pass
 
 
-class TaskListItem(TaskBase):
-    pass
+class EpisodeRead(EpisodeBase):
+    """Full episode with related cases."""
+
+    fantasy_court_cases: list["CaseItem"]
 
 
-class TaskUpdate(ApiModel):
-    title: str | None = None
-    description: str | None = None
-    completed: bool | None = None
-    priority: TaskPriority | None = None
+# Case interfaces
+class CaseBase(ApiModel):
+    id: int
+    docket_number: str
+    case_caption: str | None
+    fact_summary: str
+    questions_presented_html: str | None
+    procedural_posture: str | None
+    case_topics: list[str] | None
+    start_time_s: float
+    end_time_s: float
+
+
+class CaseItem(CaseBase):
+    """Case in list views or as related object."""
+
+    episode_id: int
+
+
+class CitedCaseItem(ApiModel):
+    """Minimal case information for citations."""
+
+    id: int
+    docket_number: str
+    case_caption: str | None
+    episode_id: int
+
+
+class CitedCaseRelation(ApiModel):
+    """Citation where we show the cited case."""
+
+    cited_case: CitedCaseItem
+
+
+class CitingCaseRelation(ApiModel):
+    """Citation where we show the citing case."""
+
+    citing_case: CitedCaseItem
+
+
+class CaseRead(CaseBase):
+    """Full case with episode and opinion."""
+
+    episode: EpisodeBase
+    opinion: "OpinionBase | None"
+    cited_cases: list[CitedCaseRelation]
+    citing_cases: list[CitingCaseRelation]
+
+
+# Opinion interfaces
+class OpinionBase(ApiModel):
+    id: int
+    authorship_html: str
+    holding_statement_html: str
+    reasoning_summary_html: str
+    pdf_path: str | None
+
+
+class OpinionItem(OpinionBase):
+    """Opinion in list views."""
+
+    case: CaseBase
+
+
+class OpinionRead(OpinionBase):
+    """Full opinion with complete body and case context."""
+
+    opinion_body_html: str
+    case: CaseRead

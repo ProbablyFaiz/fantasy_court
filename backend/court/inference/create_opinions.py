@@ -70,9 +70,11 @@ Specifies who wrote the opinion and how other justices aligned.
 - Majority with dissent: `<span class="small-caps">Justice Horlbeck</span> delivered the opinion of the Court, in which <span class="small-caps">Chief Justice Heifetz</span> joined. <span class="small-caps">Justice Kelly</span> filed a dissenting opinion.`
 - Majority (unanimous, typical for simple cases and pick the host who feels most strongly): `<span class="small-caps">Justice Horlbeck</span> delivered the opinion for a unanimous Court.`
 - Per curiam (unanimous, if hosts are all uniform or not strongly opinionated): `<span class="small-caps">Per Curiam</span>.`
-- Concurrence in part: `<span class="small-caps">Justice Kelly</span> delivered the opinion of the Court, in which <span class="small-caps">Justice Horlbeck</span> joined and <span class="small-caps">Justice Heifetz</span> joined as to parts I and II. <span class="small-caps">Justice Heifetz</span> filed an opinion concurring in part and dissenting in part.`
+- Concurrence in part: `<span class="small-caps">Justice Kelly</span> delivered the opinion of the Court, in which <span class="small-caps">Justice Horlbeck</span> joined and <span class="small-caps">Justice Heifetz</span> joined as to parts I and II. <span class="small-caps">Chief Justice Heifetz</span> filed an opinion concurring in part and dissenting in part.`
 
 If the hosts are split on something - it can be a fun opportunity to have a fractured court with concurrences or dissents! But don't force it.
+
+Try to distribute majority opinion assignments relatively evenly, with the Chief Justice getting close cases as the most senior justice.
 
 ### 2. Holding Statement HTML (holding_statement_html)
 A single-sentence summary of the Court's holding, typically starting with "Held:".
@@ -237,6 +239,39 @@ Use such citations sparingly - do at most one per opinion and keep the focus on 
 
 **Important**: Only cite cases you are confident exist and are on point. When in doubt, rely solely on Fantasy Court precedent.
 
+## Dissenting and Concurring Opinions
+
+When the authorship indicates a justice filed a dissenting or concurring opinion, include it in the same `opinion_body_html` after the majority opinion, separated by a section break.
+
+**Separation**: Use `<p class="opinion-break"></p>` to separate the majority opinion from dissents/concurrences.
+
+**Opening**: Begin with the justice's name in small caps and their role:
+- `<p><span class="small-caps">Justice Kelly</span>, dissenting.</p>`
+- `<p><span class="small-caps">Justice Horlbeck</span>, with whom <span class="small-caps">Justice Heifetz</span> joins, dissenting.</p>`
+- `<p><span class="small-caps">Justice Heifetz</span>, concurring in part and dissenting in part.</p>`
+
+**Structure**: Dissents/concurrences typically:
+1. Open with the above identification line
+2. Acknowledge the majority's holding (often briefly)
+3. Explain the disagreement or additional reasoning
+4. May cite precedent differently or distinguish the majority's citations
+
+**Ending**: Dissents/concurrences do NOT use a disposition statement. Simply end with the final substantive paragraph.
+
+**Example with dissent**:
+```html
+<!-- End of majority opinion -->
+<p class="disposition">It is so ordered.</p>
+
+<p class="section-break">* * *</p>
+
+<p><span class="small-caps">Justice Kelly</span>, dissenting.</p>
+
+<p>The majority holds that threatening spousal disclosure constitutes impermissible coercion. I disagree. In fantasy football, all information is fair game, and the majority's ruling improperly limits the creative tactics that make our leagues engaging.</p>
+
+<p><!-- ...rest of dissent... --></p>
+```
+
 ## HTML Markup Rules
 
 **Allowed tags**:
@@ -278,6 +313,8 @@ Use such citations sparingly - do at most one per opinion and keep the focus on 
 7. **Always include a disposition**: Every opinion must end with a formal disposition statement (e.g., "It is so ordered.", "Petition denied.", "Trade voided."). This is the final, right-aligned element that formally declares the Court's order.
 
 8. If a past opinion is clearly irrelevant from the summary shown, you don't need to read it - you can save the tokens. But don't be too shy.
+
+9. Sometimes due to transcription errors, football players' may be mis-spelled in the provided transcript and information. If the player being referred to is well known to you, you can use your knowledge of the player to correct the spelling.
 
 ## Tools Available
 
@@ -344,6 +381,7 @@ def _list_past_opinions(db: Session) -> str:
         lines.append(f"Fact Summary: {case.fact_summary}")
         lines.append(f"Holding: {opinion.holding_statement_html}")
         lines.append(f"Reasoning Summary: {opinion.reasoning_summary_html}")
+        lines.append(f"Authorship: {opinion.authorship_html}")
         lines.append("")  # blank line between opinions
 
     return "\n".join(lines)
@@ -458,6 +496,21 @@ _OPINION_AGENT_TOOLS = [
         },
     },
 ]
+
+
+def _remove_cache_controls(messages: list[dict]) -> None:
+    """
+    Remove cache_control from all content blocks in the message history.
+
+    This modifies the messages list in-place. We need to do this before adding
+    a new cache_control to avoid exceeding Anthropic's limit of 4 cache_control blocks.
+    """
+    for message in messages:
+        content = message.get("content")
+        if isinstance(content, list):
+            for item in content:
+                if isinstance(item, dict) and "cache_control" in item:
+                    del item["cache_control"]
 
 
 def _serialize_message_log(messages: list[dict]) -> list[dict]:
@@ -589,10 +642,6 @@ Please draft a complete Fantasy Court opinion for this case. Remember to:
     while iteration < max_iterations:
         iteration += 1
 
-        CONSOLE.print(f"\n[bold cyan]{'=' * 60}[/bold cyan]")
-        CONSOLE.print(f"[bold cyan]Agent Turn {iteration}[/bold cyan]")
-        CONSOLE.print(f"[bold cyan]{'=' * 60}[/bold cyan]\n")
-
         # Make API call with interleaved thinking
         # We have to use the `stream` method because Claude API requires us
         #  to use streaming beyond a certain max_tokens limit.
@@ -624,6 +673,12 @@ Please draft a complete Fantasy Court opinion for this case. Remember to:
             block for block in response.content if block.type == "tool_use"
         ]
         text_blocks = [block for block in response.content if block.type == "text"]
+
+        CONSOLE.print(f"\n[bold cyan]{'=' * 60}[/bold cyan]")
+        CONSOLE.print(
+            f"[bold cyan]Agent Turn {iteration} (Case #{case.id})[/bold cyan]"
+        )
+        CONSOLE.print(f"[bold cyan]{'=' * 60}[/bold cyan]\n")
 
         # Display thinking blocks
         if thinking_blocks:
@@ -746,6 +801,8 @@ Please draft a complete Fantasy Court opinion for this case. Remember to:
                 break  # Stop processing other tool calls
 
         if tool_results:
+            # Remove previous cache controls to avoid exceeding the 4-block limit
+            _remove_cache_controls(messages)
             tool_results[-1]["cache_control"] = {"type": "ephemeral"}
 
         # If opinion was submitted, we're done
@@ -801,7 +858,10 @@ async def process_cases_batch(
     async def process_one(case: FantasyCourtCase) -> FantasyCourtOpinion | None:
         async with semaphore:
             try:
-                opinion = await run_opinion_drafting_agent(db, client, model, case)
+                opinion = await asyncio.wait_for(
+                    run_opinion_drafting_agent(db, client, model, case),
+                    timeout=600,  # 10 minutes
+                )
 
                 # Assign provenance
                 opinion.provenance_id = provenance_id

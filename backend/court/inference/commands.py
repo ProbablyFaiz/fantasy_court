@@ -21,6 +21,7 @@ from court.db.models import (
 )
 from court.db.session import get_session
 from court.inference import create_cases as create_cases_module
+from court.inference import create_citations as create_citations_module
 from court.inference import create_opinions as create_opinions_module
 from court.inference import create_segments as create_segments_module
 from court.inference.create_cases import (
@@ -608,3 +609,5 @@ def draft_opinion(case_id: int, model: str, save: str):
 inference.add_command(create_segments_module.main, name="create-segments")
 inference.add_command(create_cases_module.main, name="create-cases")
 inference.add_command(create_opinions_module.main, name="create-opinions")
+
+inference.add_command(create_citations_module.main, name="create-citations")

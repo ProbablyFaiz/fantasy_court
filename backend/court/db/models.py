@@ -140,6 +140,9 @@ class FantasyCourtCase(Base, IndexedTimestampMixin):
         back_populates="fantasy_court_cases"
     )
     provenance: Mapped[Provenance] = relationship()
+    opinion: Mapped[FantasyCourtOpinion | None] = relationship(
+        back_populates="case", uselist=False
+    )
     citing_cases: Mapped[list[CaseCitation]] = relationship(
         foreign_keys="CaseCitation.cited_case_id", back_populates="cited_case"
     )
@@ -174,19 +177,18 @@ class FantasyCourtOpinion(Base, IndexedTimestampMixin):
     """The conversation history between the user and assistant during opinion drafting.
     Stored as a list of message dicts with role and content. Useful for debugging and analysis."""
 
-    case: Mapped[FantasyCourtCase] = relationship()
+    case: Mapped[FantasyCourtCase] = relationship(back_populates="opinion")
     provenance: Mapped[Provenance] = relationship()
 
 
 class CaseCitation(Base, IndexedTimestampMixin):
     __tablename__ = "case_citations"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
     citing_case_id: Mapped[int] = mapped_column(
-        ForeignKey("fantasy_court_cases.id"), index=True
+        ForeignKey("fantasy_court_cases.id"), primary_key=True, index=True
     )
     cited_case_id: Mapped[int] = mapped_column(
-        ForeignKey("fantasy_court_cases.id"), index=True
+        ForeignKey("fantasy_court_cases.id"), primary_key=True, index=True
     )
     citation_context: Mapped[str | None] = mapped_column()
     """Optional context about how/why this case was cited."""

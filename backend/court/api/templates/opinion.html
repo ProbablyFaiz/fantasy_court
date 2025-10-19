@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ case_caption }} - Fantasy Court Opinion</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Palatino', 'Georgia', 'Times New Roman', serif;
+            line-height: 1.7;
+            color: #1a1a1a;
+            background-color: #f8f8f8;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 3rem 4rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            border-bottom: 2px solid #333;
+            padding-bottom: 1.5rem;
+        }
+
+        .court-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .case-caption {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: 1rem 0 0.5rem;
+        }
+
+        .docket-number {
+            font-size: 0.95rem;
+            color: #555;
+            margin-bottom: 0.5rem;
+        }
+
+        .episode-info {
+            font-size: 0.9rem;
+            color: #666;
+            font-style: italic;
+        }
+
+        .authorship {
+            margin: 2rem 0 1.5rem;
+            text-align: center;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .holding {
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background-color: #f5f5f5;
+            border-left: 4px solid #333;
+        }
+
+        .holding em {
+            font-weight: 600;
+            font-style: normal;
+        }
+
+        .reasoning-summary {
+            margin: 2rem 0;
+            padding: 1rem 0;
+            border-top: 1px solid #ddd;
+            border-bottom: 1px solid #ddd;
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        .opinion-body {
+            margin: 2rem 0;
+            text-align: justify;
+        }
+
+        .opinion-body p {
+            margin-bottom: 1rem;
+            text-indent: 0;
+        }
+
+        .opinion-body p.part-header {
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin: 2rem 0 1rem;
+            text-indent: 0;
+        }
+
+        .opinion-body p.section-break {
+            text-align: center;
+            margin: 2rem 0;
+            text-indent: 0;
+        }
+
+        .opinion-body p.opinion-break {
+            text-align: center;
+            margin: 3rem 0;
+            font-size: 1.2rem;
+            text-indent: 0;
+        }
+
+        .opinion-body p.disposition {
+            text-align: right;
+            font-style: italic;
+            margin: 2rem 0 0;
+            text-indent: 0;
+        }
+
+        .opinion-body em {
+            font-style: italic;
+        }
+
+        .opinion-body b {
+            font-weight: 600;
+        }
+
+        .small-caps {
+            font-variant: small-caps;
+            letter-spacing: 0.05em;
+        }
+
+        /* Citation styling */
+        .opinion-body span[data-cite-docket] {
+            color: #1a5490;
+            cursor: pointer;
+        }
+
+        .opinion-body span[data-cite-docket]:hover {
+            text-decoration: underline;
+        }
+
+        .footer {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 1in;
+            }
+
+            .footer {
+                page-break-before: avoid;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 2rem 1.5rem;
+            }
+
+            body {
+                padding: 1rem 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="court-name">The Fantasy Court</div>
+            <div class="case-caption">{{ case_caption }}</div>
+            <div class="docket-number">No. {{ docket_number }}</div>
+            <div class="episode-info">{{ episode_title }} ({{ episode_date }})</div>
+        </div>
+
+        <div class="authorship">
+            {{ authorship_html | safe }}
+        </div>
+
+        <div class="holding">
+            {{ holding_statement_html | safe }}
+        </div>
+
+        <div class="reasoning-summary">
+            {{ reasoning_summary_html | safe }}
+        </div>
+
+        <div class="opinion-body">
+            {{ opinion_body_html | safe }}
+        </div>
+
+        <div class="footer">
+            The Fantasy Court &mdash; A tribunal of The Ringer Fantasy Football Show
+        </div>
+    </div>
+</body>
+</html>
