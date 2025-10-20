@@ -122,7 +122,7 @@ def list_cases(
     page: Annotated[int, Query(ge=1)] = 1,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
 ):
-    query = sa.select(FantasyCourtCase)
+    query = sa.select(FantasyCourtCase).options(selectinload(FantasyCourtCase.episode))
 
     if episode_id is not None:
         query = query.where(FantasyCourtCase.episode_id == episode_id)
@@ -180,7 +180,11 @@ def list_opinions(
     query = (
         sa.select(FantasyCourtOpinion)
         .join(FantasyCourtCase)
-        .options(selectinload(FantasyCourtOpinion.case))
+        .options(
+            selectinload(FantasyCourtOpinion.case).selectinload(
+                FantasyCourtCase.episode
+            )
+        )
     )
 
     if search is not None:

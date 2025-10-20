@@ -12,6 +12,7 @@ from sqlalchemy.orm import (
 )
 
 from court.inference.transcript import Transcript
+from court.utils import bucket
 
 
 class Base(DeclarativeBase):
@@ -59,6 +60,12 @@ class PodcastEpisode(Base, IndexedTimestampMixin):
     fantasy_court_cases: Mapped[list[FantasyCourtCase]] = relationship(
         back_populates="episode"
     )
+
+    @property
+    def bucket_mp3_public_url(self) -> str | None:
+        if self.bucket_mp3_path is None:
+            return None
+        return bucket.get_public_url(self.bucket_mp3_path)
 
 
 class FantasyCourtSegment(Base, IndexedTimestampMixin):

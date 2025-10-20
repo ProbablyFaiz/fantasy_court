@@ -37,6 +37,7 @@ class EpisodeBase(ApiModel):
     description_html: str | None
     pub_date: datetime
     duration_seconds: int | None
+    bucket_mp3_public_url: str | None
 
 
 class EpisodeItem(EpisodeBase):
@@ -67,7 +68,7 @@ class CaseBase(ApiModel):
 class CaseItem(CaseBase):
     """Case in list views or as related object."""
 
-    episode_id: int
+    episode: EpisodeItem
 
 
 class CitedCaseItem(ApiModel):

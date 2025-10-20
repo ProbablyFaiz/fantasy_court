@@ -2,8 +2,8 @@
 
 import type { Client, Options as ClientOptions, TDataShape } from '@hey-api/client-axios';
 import { client as _heyApiClient } from './client.gen';
-import { createTaskResponseTransformer, listTasksResponseTransformer, readTaskResponseTransformer, updateTaskResponseTransformer } from './transformers.gen';
-import type { CreateTaskData, CreateTaskErrors, CreateTaskResponses, DeleteTaskData, DeleteTaskErrors, DeleteTaskResponses, ListTasksData, ListTasksErrors, ListTasksResponses, ReadTaskData, ReadTaskErrors, ReadTaskResponses, UpdateTaskData, UpdateTaskErrors, UpdateTaskResponses } from './types.gen';
+import { listCasesResponseTransformer, listEpisodesResponseTransformer, listOpinionsResponseTransformer, readCaseResponseTransformer, readEpisodeResponseTransformer, readOpinionResponseTransformer } from './transformers.gen';
+import type { ErrorErrorGetData, ErrorErrorGetResponses, HealthHealthGetData, HealthHealthGetResponses, ListCasesData, ListCasesErrors, ListCasesResponses, ListEpisodesData, ListEpisodesErrors, ListEpisodesResponses, ListOpinionsData, ListOpinionsErrors, ListOpinionsResponses, ReadCaseData, ReadCaseErrors, ReadCaseResponses, ReadEpisodeData, ReadEpisodeErrors, ReadEpisodeResponses, ReadOpinionData, ReadOpinionErrors, ReadOpinionHtmlData, ReadOpinionHtmlErrors, ReadOpinionHtmlResponses, ReadOpinionResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = ClientOptions<TData, ThrowOnError> & {
     /**
@@ -21,68 +21,108 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 
 export class Default {
     /**
-     * List Tasks
+     * Health
      */
-    public static listTasks<ThrowOnError extends boolean = false>(options?: Options<ListTasksData, ThrowOnError>) {
-        return (options?.client ?? _heyApiClient).get<ListTasksResponses, ListTasksErrors, ThrowOnError>({
+    public static healthHealthGet<ThrowOnError extends boolean = false>(options?: Options<HealthHealthGetData, ThrowOnError>) {
+        return (options?.client ?? _heyApiClient).get<HealthHealthGetResponses, unknown, ThrowOnError>({
             responseType: 'json',
-            responseTransformer: listTasksResponseTransformer,
-            url: '/tasks',
+            url: '/health',
             ...options
         });
     }
 
     /**
-     * Create Task
+     * Error
      */
-    public static createTask<ThrowOnError extends boolean = false>(options: Options<CreateTaskData, ThrowOnError>) {
-        return (options.client ?? _heyApiClient).post<CreateTaskResponses, CreateTaskErrors, ThrowOnError>({
+    public static errorErrorGet<ThrowOnError extends boolean = false>(options?: Options<ErrorErrorGetData, ThrowOnError>) {
+        return (options?.client ?? _heyApiClient).get<ErrorErrorGetResponses, unknown, ThrowOnError>({
             responseType: 'json',
-            responseTransformer: createTaskResponseTransformer,
-            url: '/tasks',
-            ...options,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            }
-        });
-    }
-
-    /**
-     * Delete Task
-     */
-    public static deleteTask<ThrowOnError extends boolean = false>(options: Options<DeleteTaskData, ThrowOnError>) {
-        return (options.client ?? _heyApiClient).delete<DeleteTaskResponses, DeleteTaskErrors, ThrowOnError>({
-            url: '/tasks/{task_id}',
+            url: '/error',
             ...options
         });
     }
 
     /**
-     * Read Task
+     * List Episodes
      */
-    public static readTask<ThrowOnError extends boolean = false>(options: Options<ReadTaskData, ThrowOnError>) {
-        return (options.client ?? _heyApiClient).get<ReadTaskResponses, ReadTaskErrors, ThrowOnError>({
+    public static listEpisodes<ThrowOnError extends boolean = false>(options?: Options<ListEpisodesData, ThrowOnError>) {
+        return (options?.client ?? _heyApiClient).get<ListEpisodesResponses, ListEpisodesErrors, ThrowOnError>({
             responseType: 'json',
-            responseTransformer: readTaskResponseTransformer,
-            url: '/tasks/{task_id}',
+            responseTransformer: listEpisodesResponseTransformer,
+            url: '/episodes',
             ...options
         });
     }
 
     /**
-     * Update Task
+     * Read Episode
      */
-    public static updateTask<ThrowOnError extends boolean = false>(options: Options<UpdateTaskData, ThrowOnError>) {
-        return (options.client ?? _heyApiClient).patch<UpdateTaskResponses, UpdateTaskErrors, ThrowOnError>({
+    public static readEpisode<ThrowOnError extends boolean = false>(options: Options<ReadEpisodeData, ThrowOnError>) {
+        return (options.client ?? _heyApiClient).get<ReadEpisodeResponses, ReadEpisodeErrors, ThrowOnError>({
             responseType: 'json',
-            responseTransformer: updateTaskResponseTransformer,
-            url: '/tasks/{task_id}',
-            ...options,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            }
+            responseTransformer: readEpisodeResponseTransformer,
+            url: '/episodes/{episode_id}',
+            ...options
+        });
+    }
+
+    /**
+     * List Cases
+     */
+    public static listCases<ThrowOnError extends boolean = false>(options?: Options<ListCasesData, ThrowOnError>) {
+        return (options?.client ?? _heyApiClient).get<ListCasesResponses, ListCasesErrors, ThrowOnError>({
+            responseType: 'json',
+            responseTransformer: listCasesResponseTransformer,
+            url: '/cases',
+            ...options
+        });
+    }
+
+    /**
+     * Read Case
+     */
+    public static readCase<ThrowOnError extends boolean = false>(options: Options<ReadCaseData, ThrowOnError>) {
+        return (options.client ?? _heyApiClient).get<ReadCaseResponses, ReadCaseErrors, ThrowOnError>({
+            responseType: 'json',
+            responseTransformer: readCaseResponseTransformer,
+            url: '/cases/{case_id}',
+            ...options
+        });
+    }
+
+    /**
+     * List Opinions
+     */
+    public static listOpinions<ThrowOnError extends boolean = false>(options?: Options<ListOpinionsData, ThrowOnError>) {
+        return (options?.client ?? _heyApiClient).get<ListOpinionsResponses, ListOpinionsErrors, ThrowOnError>({
+            responseType: 'json',
+            responseTransformer: listOpinionsResponseTransformer,
+            url: '/opinions',
+            ...options
+        });
+    }
+
+    /**
+     * Read Opinion
+     */
+    public static readOpinion<ThrowOnError extends boolean = false>(options: Options<ReadOpinionData, ThrowOnError>) {
+        return (options.client ?? _heyApiClient).get<ReadOpinionResponses, ReadOpinionErrors, ThrowOnError>({
+            responseType: 'json',
+            responseTransformer: readOpinionResponseTransformer,
+            url: '/opinions/{opinion_id}',
+            ...options
+        });
+    }
+
+    /**
+     * Read Opinion Html
+     * Render the opinion as formatted HTML.
+     */
+    public static readOpinionHtml<ThrowOnError extends boolean = false>(options: Options<ReadOpinionHtmlData, ThrowOnError>) {
+        return (options.client ?? _heyApiClient).get<ReadOpinionHtmlResponses, ReadOpinionHtmlErrors, ThrowOnError>({
+            responseType: 'text',
+            url: '/opinions/{opinion_id}/html',
+            ...options
         });
     }
 }

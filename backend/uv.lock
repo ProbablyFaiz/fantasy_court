@@ -477,6 +477,7 @@ dependencies = [
     { name = "redis" },
     { name = "rl" },
     { name = "sentry-sdk", extra = ["celery", "fastapi", "sqlalchemy"] },
+    { name = "smartypants" },
     { name = "sqlalchemy" },
     { name = "structlog" },
     { name = "tenacity" },
@@ -516,6 +517,7 @@ requires-dist = [
     { name = "redis", specifier = ">=6.2.0" },
     { name = "rl", git = "https://github.com/ProbablyFaiz/rl.git" },
     { name = "sentry-sdk", extras = ["celery", "fastapi", "sqlalchemy"], specifier = ">=2.30.0" },
+    { name = "smartypants", specifier = ">=2.0.1" },
     { name = "sqlalchemy", specifier = ">=2.0.36" },
     { name = "structlog", specifier = ">=25.4.0" },
     { name = "tenacity", specifier = ">=9.0.0" },
@@ -1666,6 +1668,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031, upload-time = "2024-12-04T17:35:28.174Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
+]
+
+[[package]]
+name = "smartypants"
+version = "2.0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6c/8f/a033f78196d9467b402d100ec40b95166d43fa2642693f23f771473d8195/smartypants-2.0.2.tar.gz", hash = "sha256:39d64ce1d7cc6964b698297bdf391bc12c3251b7f608e6e55d857cd7c5f800c6", size = 16392, upload-time = "2025-06-17T07:59:48.122Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/39/2c/f12558bff677defbfc64bf32441daec245df608dd2d9a12168f1d766ad75/smartypants-2.0.2-py2.py3-none-any.whl", hash = "sha256:9471578606e8ee0740065bf8771f55fec8c83313cb98c5d1c1864ddd389d0f3a", size = 10168, upload-time = "2025-06-17T07:59:46.765Z" },
 ]
 
 [[package]]

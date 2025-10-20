@@ -46,10 +46,7 @@ export type CaseItem = {
      * End Time S
      */
     end_time_s: number;
-    /**
-     * Episode Id
-     */
-    episode_id: number;
+    episode: EpisodeItem;
 };
 
 /**
@@ -95,7 +92,7 @@ export type CaseRead = {
      */
     end_time_s: number;
     episode: EpisodeItem;
-    opinion: OpinionItem | null;
+    opinion: OpinionItemOutput | null;
     /**
      * Cases Cited
      */
@@ -160,6 +157,10 @@ export type EpisodeItem = {
      * Duration Seconds
      */
     duration_seconds: number | null;
+    /**
+     * Bucket Mp3 Public Url
+     */
+    bucket_mp3_public_url: string | null;
 };
 
 /**
@@ -193,6 +194,10 @@ export type EpisodeRead = {
      */
     duration_seconds: number | null;
     /**
+     * Bucket Mp3 Public Url
+     */
+    bucket_mp3_public_url: string | null;
+    /**
      * Fantasy Court Cases
      */
     fantasy_court_cases: Array<CaseItem>;
@@ -213,7 +218,36 @@ export type HttpValidationError = {
  *
  * Opinion in list views.
  */
-export type OpinionItem = {
+export type OpinionItemInput = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Authorship Html
+     */
+    authorship_html: string;
+    /**
+     * Holding Statement Html
+     */
+    holding_statement_html: string;
+    /**
+     * Reasoning Summary Html
+     */
+    reasoning_summary_html: string;
+    /**
+     * Pdf Path
+     */
+    pdf_path: string | null;
+    case: CaseItem;
+};
+
+/**
+ * OpinionItem
+ *
+ * Opinion in list views.
+ */
+export type OpinionItemOutput = {
     /**
      * Id
      */
@@ -337,7 +371,7 @@ export type PaginatedBaseOpinionItem = {
     /**
      * Items
      */
-    items: Array<OpinionItem>;
+    items: Array<OpinionItemOutput>;
     /**
      * Total
      */
@@ -429,7 +463,7 @@ export type PaginatedBaseOpinionItemWritable = {
     /**
      * Items
      */
-    items: Array<OpinionItem>;
+    items: Array<OpinionItemOutput>;
     /**
      * Total
      */

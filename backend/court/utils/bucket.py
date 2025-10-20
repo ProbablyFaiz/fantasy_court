@@ -10,6 +10,7 @@ BUCKET_ACCESS_KEY_ID = rl.utils.io.getenv("FANTASY_COURT_BUCKET_ACCESS_KEY_ID")
 BUCKET_SECRET_ACCESS_KEY = rl.utils.io.getenv("FANTASY_COURT_BUCKET_SECRET_ACCESS_KEY")
 BUCKET_ENDPOINT = rl.utils.io.getenv("FANTASY_COURT_BUCKET_ENDPOINT")
 BUCKET_REGION = rl.utils.io.getenv("FANTASY_COURT_BUCKET_REGION")
+BUCKET_PUBLIC_URL = rl.utils.io.getenv("FANTASY_COURT_BUCKET_PUBLIC_URL")
 
 
 def get_bucket_client() -> boto3.client:
@@ -62,16 +63,56 @@ def list_bucket_files(prefix: str, client: boto3.client) -> set[str]:
 
 
 def get_signed_url(
-    s3_path: str, client: boto3.client, *, download_file_name: str | None = None
+    s3_path: str,
+    client: boto3.client,
+    *,
+    download_file_name: str | None = None,
+    ttl: int = 3600,
+    verb: str = "get_object",
+    inline: bool = False,
 ) -> str:
+    """
+    Get a presigned URL for a file in the bucket.
+
+    Args:
+        s3_path: The path to the file in the bucket.
+        client: The boto3 client to use.
+        download_file_name: The name of the file to download.
+        ttl: The time to live for the presigned URL in seconds.
+        verb: The HTTP verb to use for the presigned URL.
+        inline: If True, set content disposition to inline for browser viewing.
+                If False, set to attachment for download.
+
+    Returns:
+        A presigned URL for the file.
+    """
     if download_file_name is None:
         download_file_name = s3_path.split("/")[-1]
-    return client.generate_presigned_url(
-        "get_object",
+    extra_params = {}
+    if verb == "get_object":
+        if inline:
+            extra_params["ResponseContentDisposition"] = (
+                f"inline; filename={urllib.parse.quote(download_file_name)}"
+            )
+        else:
+            extra_params["ResponseContentDisposition"] = (
+                f"attachment; filename={urllib.parse.quote(download_file_name)}"
+            )
+    url = client.generate_presigned_url(
+        verb,
         Params={
             "Bucket": BUCKET_NAME,
             "Key": s3_path,
-            "ResponseContentDisposition": f"attachment; filename={urllib.parse.quote(download_file_name)}",
+            **extra_params,
         },
-        ExpiresIn=3600,
+        ExpiresIn=ttl,
     )
+    return url
+
+
+def get_public_url(s3_path: str) -> str:
+    if not BUCKET_PUBLIC_URL:
+        raise ValueError(
+            "FANTASY_COURT_BUCKET_PUBLIC_URL is not set, but is required to get a public URL for a file in the bucket."
+        )
+    return f"{BUCKET_PUBLIC_URL.rstrip('/')}/{s3_path.lstrip('/')}"

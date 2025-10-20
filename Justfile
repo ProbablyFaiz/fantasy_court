@@ -35,6 +35,7 @@ build:
 # Regenerate the OpenAPI client
 openapi *HOST:
     cd frontend && pnpm run openapi {{HOST}}
+    cd frontend-static && pnpm run openapi {{HOST}}
 
 # Run pre-commit hooks
 lint:

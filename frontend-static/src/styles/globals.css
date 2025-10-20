@@ -1,26 +1,175 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Old English";
+  src: url("/fonts/EngraversOldEnglish.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Equity";
+  src: url("/fonts/equity_a/equity_a_regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Equity";
+  src: url("/fonts/equity_a/equity_a_italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Equity";
+  src: url("/fonts/equity_a/equity_a_bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Equity";
+  src: url("/fonts/equity_a/equity_a_bold_italic.woff2") format("woff2");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Equity Caps";
+  src: url("/fonts/equity_a/equity_a_caps_regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Equity Caps";
+  src: url("/fonts/equity_a/equity_a_caps_bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fdfdf8;
+  --foreground: #1a1a1a;
+  --accent: #8b4513;
+  --border: #d4c5a9;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+  --font-equity: "Equity", Georgia, serif;
+  --font-equity-caps: "Equity Caps", Georgia, serif;
+  --font-old-english: "Old English", serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #1a1612;
+    --foreground: #f5f5f0;
+    --accent: #c89968;
+    --border: #3a3530;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-equity);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  font-variant-ligatures: common-ligatures;
+  font-feature-settings:
+    "liga" 1,
+    "clig" 1;
+  -webkit-font-smoothing: subpixel-antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Font family utility classes */
+.font-old-english {
+  font-family: var(--font-old-english);
+}
+
+.font-equity-caps {
+  font-family: var(--font-equity-caps);
+}
+
+.font-equity {
+  font-family: var(--font-equity);
+}
+
+/* Opinion-specific classes */
+.small-caps {
+  font-family: var(--font-equity-caps);
+  font-size: 0.9em;
+  letter-spacing: 0.02em;
+}
+
+.part-header {
+  font-family: var(--font-equity);
+  font-size: 1.1em;
+  font-weight: 700;
+  text-align: center;
+  margin: 1rem 0 1rem;
+}
+
+.section-break {
+  text-align: center;
+  margin: 1rem 0;
+  font-size: 1.2em;
+  letter-spacing: 0.3em;
+}
+
+.disposition {
+  text-align: right;
+  font-style: italic;
+  margin: 1rem 0;
+  font-weight: 500;
+}
+
+.opinion-break {
+  height: 0rem;
+  border-bottom: 2px solid var(--border);
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+/* Opinion body styling */
+.opinion-body p {
+  margin-bottom: 1rem;
+}
+
+.opinion-body p:last-child {
+  margin-bottom: 0;
+}
+
+.opinion-body em {
+  font-style: italic;
+}
+
+.opinion-body b {
+  font-weight: 700;
+}
+
+/* Citation links styling */
+.opinion-body [data-cite-docket] {
+  color: var(--accent);
+  text-decoration: none;
+  cursor: default;
+}
+
+.opinion-body [data-cite-docket]:hover {
+  text-decoration: underline;
 }
