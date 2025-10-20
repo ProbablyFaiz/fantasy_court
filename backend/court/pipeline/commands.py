@@ -61,7 +61,10 @@ def run():
         ("Creating segments", ["court", "inference", "create-segments"]),
         ("Transcribing segments", ["court", "inference", "transcribe-segments"]),
         ("Extracting cases", ["court", "inference", "create-cases"]),
-        ("Drafting opinions", ["court", "inference", "create-opinions"]),
+        (
+            "Drafting opinions",
+            ["court", "inference", "create-opinions", "--concurrency", "1"],
+        ),
         ("Creating citations", ["court", "inference", "create-citations"]),
         (
             "Exporting opinions",
