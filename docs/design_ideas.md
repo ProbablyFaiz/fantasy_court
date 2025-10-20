@@ -29,3 +29,14 @@ Idea: let opinion drafting agent build up a common law - go chronologically and 
 - [ ]
 - [x] Case creation from transcripts - 2 points
 - [x] Opinion drafting agent - 10 points
+
+automated pipeline:
+ create celery job which runs every 30 minutes which:
+ - ingests episodes from rss feed
+ - creates segments
+ - transcribes segments
+ - creates cases
+ - creates opinions
+ - exports opinions
+ - builds next js static site with reference to exported opinions
+ - deploys static site to cloudflare pages with wrangler

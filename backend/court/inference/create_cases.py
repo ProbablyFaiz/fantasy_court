@@ -355,7 +355,15 @@ async def process_segments_batch(
     client = anthropic.AsyncAnthropic(api_key=_ANTHROPIC_API_KEY)
     semaphore = asyncio.Semaphore(concurrency)
 
-    async def process_one(segment: FantasyCourtSegment) -> list[FantasyCourtCase]:
+    async def process_one(
+        segment: FantasyCourtSegment,
+    ) -> tuple[FantasyCourtSegment, list[FantasyCourtCase], bool]:
+        """
+        Process one segment.
+
+        Returns:
+            Tuple of (segment, list of cases, True if error occurred)
+        """
         async with semaphore:
             try:
                 cases = await extract_fantasy_court_cases(segment, client, model)
@@ -364,26 +372,30 @@ async def process_segments_batch(
                 for case in cases:
                     case.provenance_id = provenance_id
 
-                return cases
+                return segment, cases, False
             except Exception as e:
                 console.print(
                     f"[red]Error processing segment {segment.id} (episode {segment.episode_id}):[/red] {e}"
                 )
-                return []
+                return segment, [], True
 
     # Process all segments concurrently, committing in batches
     tasks = [process_one(seg) for seg in segments]
     total_created = 0
     pending_commits = []
+    segments_no_cases = []
     failed_count = 0
 
     # Use tqdm to track progress
     pbar = tqdm.tqdm(total=len(segments), desc="Processing segments")
     for coro in asyncio.as_completed(tasks):
-        cases = await coro
+        segment, cases, had_error = await coro
 
-        if not cases:
+        if not cases and had_error:
             failed_count += 1
+        elif not cases:
+            # No cases found and no error - mark segment as checked
+            segments_no_cases.append(segment)
         else:
             pending_commits.extend(cases)
 
@@ -397,9 +409,14 @@ async def process_segments_batch(
         pbar.update(1)
     pbar.close()
 
-    # Commit any remaining cases
+    # Commit any remaining cases and mark segments with no cases
     if pending_commits:
         db.add_all(pending_commits)
+
+    for segment in segments_no_cases:
+        segment.found_no_cases = True
+
+    if pending_commits or segments_no_cases:
         db.commit()
         total_created += len(pending_commits)
 
@@ -446,12 +463,15 @@ def main(model: str, concurrency: int):
     )
     db.commit()  # Commit to ensure provenance is persisted
 
-    # Get segments that have transcripts but don't have cases yet
+    # Get segments that have transcripts but don't have cases yet and haven't been checked
     segments_query = (
         sa.select(FantasyCourtSegment)
         .join(FantasyCourtSegment.transcript)
         .outerjoin(FantasyCourtCase)
-        .where(FantasyCourtCase.id.is_(None))
+        .where(
+            FantasyCourtCase.id.is_(None),
+            FantasyCourtSegment.found_no_cases.is_(False),
+        )
         .options(
             selectinload(FantasyCourtSegment.episode),
             selectinload(FantasyCourtSegment.transcript),

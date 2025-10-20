@@ -260,35 +260,52 @@ async def process_episodes_batch(
     client = openai.AsyncOpenAI(api_key=_OPENAI_API_KEY)
     semaphore = asyncio.Semaphore(concurrency)
 
-    async def process_one(episode: PodcastEpisode) -> FantasyCourtSegment | None:
+    async def process_one(
+        episode: PodcastEpisode,
+    ) -> tuple[PodcastEpisode, FantasyCourtSegment | None, bool]:
+        """
+        Process one episode.
+
+        Returns:
+            Tuple of (episode, segment if found, True if error occurred)
+        """
         async with semaphore:
             try:
                 segment = await detect_fantasy_court_segment(client, episode, model)
                 if segment:
                     segment.provenance_id = provenance_id
-                return segment
+                return episode, segment, False
             except Exception as e:
                 LOGGER.error(
                     f"Error processing episode {episode.id} ({episode.title}): {e}"
                 )
-                return None
+                return episode, None, True
 
     # Process all episodes concurrently
     tasks = [process_one(ep) for ep in episodes]
     results = []
+    episodes_no_segments = []
 
     # Use tqdm to track progress
     pbar = tqdm.tqdm(total=len(episodes), desc="Processing episodes")
     for coro in asyncio.as_completed(tasks):
-        result = await coro
-        if result:
-            results.append(result)
+        episode, segment, had_error = await coro
+        if segment:
+            results.append(segment)
+        elif not had_error:
+            # No segment found and no error - mark episode as checked
+            episodes_no_segments.append(episode)
         pbar.update(1)
     pbar.close()
 
-    # Bulk insert segments
+    # Bulk insert segments and mark episodes with no segments
     if results:
         db.add_all(results)
+
+    for episode in episodes_no_segments:
+        episode.found_no_segments = True
+
+    if results or episodes_no_segments:
         db.commit()
 
     return len(results), len(episodes)
@@ -338,11 +355,14 @@ def main(model: str, concurrency: int):
             db.commit()
             db.refresh(provenance)
 
-        # Get episodes that don't already have segments
+        # Get episodes that don't already have segments and haven't been checked
         episodes_query = (
             sa.select(PodcastEpisode)
             .outerjoin(FantasyCourtSegment)
-            .where(FantasyCourtSegment.id.is_(None))
+            .where(
+                FantasyCourtSegment.id.is_(None),
+                PodcastEpisode.found_no_segments.is_(False),
+            )
             .order_by(PodcastEpisode.pub_date)
         )
 

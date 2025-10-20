@@ -25,6 +25,7 @@ from court.inference import create_citations as create_citations_module
 from court.inference import create_opinions as create_opinions_module
 from court.inference import create_segments as create_segments_module
 from court.inference import editor_agent
+from court.inference import transcribe_segments as transcribe_segments_module
 from court.inference.create_cases import (
     _DEFAULT_MODEL as _DEFAULT_CLAUDE_MODEL,
 )
@@ -608,6 +609,7 @@ def draft_opinion(case_id: int, model: str, save: str):
 
 # Register batch processing commands from their respective modules
 inference.add_command(create_segments_module.main, name="create-segments")
+inference.add_command(transcribe_segments_module.main, name="transcribe-segments")
 inference.add_command(create_cases_module.main, name="create-cases")
 inference.add_command(create_opinions_module.main, name="create-opinions")
 

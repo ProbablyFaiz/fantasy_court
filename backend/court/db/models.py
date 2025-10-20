@@ -50,6 +50,9 @@ class PodcastEpisode(Base, IndexedTimestampMixin):
     rss_feed_url: Mapped[str | None] = mapped_column()
     canonical_mp3_url: Mapped[str | None] = mapped_column()
     bucket_mp3_path: Mapped[str | None] = mapped_column()
+    found_no_segments: Mapped[bool] = mapped_column(
+        default=False, server_default="false"
+    )
 
     transcript: Mapped[EpisodeTranscript | None] = relationship(
         back_populates="episode", uselist=False
@@ -75,6 +78,7 @@ class FantasyCourtSegment(Base, IndexedTimestampMixin):
     episode_id: Mapped[int] = mapped_column(ForeignKey("podcast_episodes.id"))
     start_time_s: Mapped[float | None] = mapped_column()
     end_time_s: Mapped[float | None] = mapped_column()
+    found_no_cases: Mapped[bool] = mapped_column(default=False, server_default="false")
 
     provenance_id: Mapped[int] = mapped_column(ForeignKey("provenances.id"))
 
