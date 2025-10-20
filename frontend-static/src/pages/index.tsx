@@ -50,24 +50,31 @@ export default function Home({ opinions, seasons }: HomeProps) {
 
   // Update query params when page changes
   useEffect(() => {
-    if (currentPage === 1) {
-      // Remove page param on page 1
-      const { page: _page, ...rest } = router.query;
-      router.replace({ pathname: router.pathname, query: rest }, undefined, {
-        shallow: true,
-      });
-    } else {
-      // Set page param for other pages
-      router.replace(
-        {
-          pathname: router.pathname,
-          query: { ...router.query, page: currentPage },
-        },
-        undefined,
-        { shallow: true },
-      );
-    }
-  }, [currentPage, router.pathname, router.query, router.replace]);
+    // Only update URL if we're on the index page
+    if (router.pathname !== "/") return;
+
+    const updateUrl = () => {
+      if (currentPage === 1) {
+        // Remove page param on page 1
+        const { page: _page, ...rest } = router.query;
+        router.replace({ pathname: "/", query: rest }, undefined, {
+          shallow: true,
+        });
+      } else {
+        // Set page param for other pages
+        router.replace(
+          {
+            pathname: "/",
+            query: { page: currentPage },
+          },
+          undefined,
+          { shallow: true },
+        );
+      }
+    };
+
+    updateUrl();
+  }, [currentPage]);
 
   // Filter opinions by selected season
   const filteredOpinions = useMemo(() => {

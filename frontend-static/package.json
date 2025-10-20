@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",
-    "openapi": "openapi-ts"
+    "openapi": "openapi-ts",
+    "cf": "next build --turbopack && wrangler pages deploy --project-name=fantasycourt out"
   },
   "dependencies": {
     "@hey-api/openapi-ts": "^0.86.0",

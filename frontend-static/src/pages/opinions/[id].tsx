@@ -37,16 +37,24 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
 
   // Convert citation spans to anchor tags after component mounts
   useEffect(() => {
-    const citationSpans = document.querySelectorAll("[data-cite-docket]");
-    const anchors: HTMLAnchorElement[] = [];
+    const opinionBody = document.querySelector(".opinion-body");
+    if (!opinionBody) return;
+
+    const citationSpans = opinionBody.querySelectorAll("[data-cite-docket]");
 
     citationSpans.forEach((span) => {
       const docket = span.getAttribute("data-cite-docket");
       if (docket && docketToIdMap.has(docket)) {
         const opinionId = docketToIdMap.get(docket);
 
+        // Skip if this is already an anchor tag
+        if (span.tagName.toLowerCase() === "a") {
+          return;
+        }
+
         // Wrap the span in an anchor tag
         const anchor = document.createElement("a");
+
         anchor.href = `/opinions/${opinionId}`;
         anchor.className =
           "text-accent hover:underline transition-colors cursor-pointer";
@@ -58,29 +66,29 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
           anchor.innerHTML = span.innerHTML;
           anchor.setAttribute("data-cite-docket", docket);
           parent.replaceChild(anchor, span);
-          anchors.push(anchor);
         }
       }
     });
 
-    // Handle clicks for client-side navigation
-    const handleClick = (e: MouseEvent) => {
+    // Handle clicks for client-side navigation - only within opinion body
+    const handleClick = (e: Event) => {
       const target = e.target as HTMLElement;
       const anchor = target.closest("a[data-cite-docket]") as HTMLAnchorElement;
 
-      if (anchor) {
+      if (anchor?.hasAttribute("data-cite-docket")) {
         e.preventDefault();
+        e.stopPropagation();
         const href = anchor.getAttribute("href");
-        if (href) {
+        if (href?.startsWith("/opinions/")) {
           router.push(href);
         }
       }
     };
 
-    document.addEventListener("click", handleClick);
+    opinionBody.addEventListener("click", handleClick);
 
     return () => {
-      document.removeEventListener("click", handleClick);
+      opinionBody.removeEventListener("click", handleClick);
     };
   }, [docketToIdMap, router]);
 
