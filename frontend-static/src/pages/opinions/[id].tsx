@@ -198,7 +198,7 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
         <article className="space-y-6">
           {/* Procedural Posture */}
           {opinion.case.procedural_posture && (
-            <div className="text-sm text-foreground/70 pb-4 border-b border-border/30">
+            <div className="text-sm text-foreground/70 pb-2 border-b border-border/30">
               <span className="font-equity-caps text-foreground/80">
                 Procedural Posture:
               </span>{" "}
@@ -207,7 +207,7 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
           )}
 
           {/* Holding */}
-          <div className="bg-accent/5 border-l-4 border-accent p-6 pt-4 pb-4 mb-8 rounded-r">
+          <div className="bg-accent/5 border-l-4 border-accent p-6 pt-4 pb-2 mb-8 rounded-r">
             <div
               className="text-base leading-relaxed"
               dangerouslySetInnerHTML={{

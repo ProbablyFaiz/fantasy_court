@@ -39,7 +39,7 @@ export default function Home({ opinions, seasons }: HomeProps) {
     "all" | "unanimous" | "divided"
   >("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 25;
+  const itemsPerPage = 10;
 
   // Load saved filters from sessionStorage on mount
   useEffect(() => {
