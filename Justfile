@@ -11,18 +11,12 @@ install:
     pre-commit install
 
     cd backend && uv venv --python 3.11 && uv sync
-    cd ../frontend && pnpm install
+    cd frontend-static && pnpm install
 
-sql:
-    cd backend && uv run pgcli "postgresql://$FANTASY_COURT_PG_ADMIN_USER:$FANTASY_COURT_PG_ADMIN_PASSWORD@$FANTASY_COURT_PG_HOST:$FANTASY_COURT_PG_PORT/$FANTASY_COURT_PG_DB"
 
 # Start the FastAPI backend development server
 api *ARGS:
     cd backend && uv run fastapi dev court/api/main.py --host 0.0.0.0 --port 8203 {{ARGS}}
-
-# Start the frontend development server
-frontend *ARGS:
-    cd frontend && VITE_FANTASY_COURT_API_URL="http://poirot:8203" pnpm dev --host 0.0.0.0 --port 5186 {{ARGS}}
 
 # Start the celery dev worker
 celery *ARGS:
@@ -30,37 +24,16 @@ celery *ARGS:
 
 # Build the frontend for production
 build:
-    cd frontend && pnpm build
+    cd frontend-static && pnpm build
 
 # Regenerate the OpenAPI client
 openapi *HOST:
-    cd frontend && pnpm run openapi {{HOST}}
     cd frontend-static && pnpm run openapi {{HOST}}
 
 # Run pre-commit hooks
 lint:
     pre-commit run --all-files
 
-# Run frontend typechecking
-typecheck:
-    cd frontend && pnpm run typecheck
-
-# Add a shadcn/ui component
-shadd *ARGS:
-    cd frontend && pnpm dlx shadcn@latest add {{ARGS}}
-
-# Run frontend tests
-test-frontend *ARGS:
-    cd frontend && pnpm test:run {{ARGS}}
-
-# Run backend tests
-test-backend *ARGS:
-    cd backend && uv run pytest {{ARGS}}
-
-# Run all tests
-test-all:
-    just test-frontend
-    just test-backend
 
 # Generate a migration with the provided message
 migrate *ARGS:

@@ -1,40 +1,4 @@
 services:
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    restart: unless-stopped
-    command: tunnel run
-    environment:
-      - TUNNEL_TOKEN=${CLOUDFLARED_TUNNEL_TOKEN}
-    depends_on:
-      - nginx
-    container_name: fantasy-court-cloudflared
-
-  api:
-    container_name: fantasy-court-api
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-    command:
-      [
-        "gunicorn",
-        "court.api.main:app",
-        "--workers",
-        "4",
-        "--worker-class",
-        "uvicorn.workers.UvicornWorker",
-        "--bind",
-        "0.0.0.0:80",
-      ]
-    volumes:
-      - fantasy_court_data:/data
-    environment:
-      - DATA_ROOT=/data
-      - RL_DEBUG=0
-      - TZ=America/Los_Angeles
-    env_file:
-      - prod.env
-    restart: unless-stopped
-
   celery:
     build:
       context: .
@@ -49,25 +13,6 @@ services:
     env_file:
       - prod.env
     container_name: fantasy-court-celery
-    restart: unless-stopped
-
-
-  frontend:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
-      args:
-        - FANTASY_COURT_API_URL=/api
-    container_name: fantasy-court-frontend
-    restart: unless-stopped
-
-  nginx:
-    image: nginx:alpine
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on:
-      - api
-      - frontend
     restart: unless-stopped
 
 volumes:

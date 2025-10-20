@@ -1,6 +1,6 @@
 # Fantasy Court
 
-An official-seeming court website for *The Ringer Fantasy Football Show*'s Fantasy Court podcast segment. Uses AI to transcribe episodes, extract fantasy football dispute cases, and generate legal-style opinions with a React frontend and FastAPI backend.
+An official-seeming court website for *The Ringer Fantasy Football Show*'s Fantasy Court podcast segment. Uses AI to transcribe episodes, extract fantasy football dispute cases, and generate legal-style opinions with a Next.js static site and FastAPI backend.
 
 ## Prerequisites
 
@@ -32,7 +32,7 @@ just install
 This installs:
 - Pre-commit hooks (will also install `pre-commit` as a user-wide `uv` tool)
 - Python dependencies in a virtual environment via `uv`
-- Frontend dependencies via `pnpm`
+- Frontend-static dependencies via `pnpm`
 
 If you need more granular control over your environment setup, see the `just install` definition in `Justfile` for a starting point.
 
@@ -54,20 +54,21 @@ Edit `.env` and fill in the variables:
 
 ### 4. Start Development
 
-**Terminal 1 - Backend:**
+**Backend:**
 ```bash
 just api
 ```
 
-**Terminal 2 - Frontend:**
-```bash
-just frontend
-```
-
-Your app will be available at:
-- Frontend: http://localhost:5185
+Backend API will be available at:
 - Backend API: http://localhost:8203
 - API Docs: http://localhost:8203/docs
+
+**Frontend (Static Site):**
+The frontend is a statically generated Next.js site. To build it locally:
+```bash
+cd frontend-static
+pnpm run build
+```
 
 ### 5. Run Tests
 
@@ -77,15 +78,10 @@ To ensure all tests are passing, run:
 
 ### Development
 - `just api` - Start FastAPI backend server
-- `just frontend` - Start Vite development server
-  - Note that the dev server must be running for Tanstack Router's route tree to automatically re-generate when you change routes
-- `just openapi` - Regenerate API client from backend OpenAPI spec
-- `just shadd <component>` - Add a shadcn/ui component; equivalent to `pnpm dlx shadcn@latest add <component>`
 
 ### Building & Quality
-- `just build` - Build frontend for production
 - `just lint` - Run pre-commit hooks (formatting, linting)
-- `just typecheck` - Run TypeScript type checking
+- `just typecheck` - Run TypeScript type checking on frontend-static
 
 ### Testing
 
@@ -93,9 +89,9 @@ To run frontend tests:
 ```bash
 just test-frontend
 # Or, to run a specific test file:
-just test-frontend <path to test file, relative to frontend/>
+just test-frontend <path to test file, relative to frontend-static/>
 # E.g.,
-just test-frontend src/features/home/HomePage.test.tsx
+just test-frontend src/components/AudioPlayer.test.tsx
 ```
 
 To run backend tests:
@@ -123,45 +119,53 @@ just test-all
 
 ## Production Deployment
 
-TODO
+The Fantasy Court pipeline runs as a scheduled Celery task that:
+1. Ingests new podcast episodes from the RSS feed
+2. Downloads episode audio files to S3
+3. Detects and transcribes Fantasy Court segments
+4. Extracts cases and drafts judicial opinions using AI
+5. Exports opinions to JSON format
+6. Builds the Next.js static site
+7. Deploys to Cloudflare Pages
+
+See `court/pipeline/commands.py` for the full pipeline implementation.
 
 ## Project Structure
 
 ```
-├── backend/           # FastAPI backend
-│   ├── court/         # Main package
-│   │   ├── api/       # API routes & endpoints
-│   │   ├── db/        # Database models, sessions & migrations
-│   │   ├── jobs/      # Background job processing (Celery)
-│   │   └── utils/     # Shared utilities (observability, storage)
-│   ├── test/          # Backend tests
-│   └── pyproject.toml # Python dependencies
-├── frontend/          # React frontend
+├── backend/              # FastAPI backend
+│   ├── court/            # Main package
+│   │   ├── api/          # API routes & endpoints
+│   │   ├── db/           # Database models, sessions & migrations
+│   │   ├── inference/    # AI inference scripts (segments, cases, opinions)
+│   │   ├── ingest/       # Episode ingestion & processing
+│   │   ├── export/       # Data export utilities
+│   │   ├── pipeline/     # Automated pipeline orchestration
+│   │   ├── jobs/         # Background job processing (Celery)
+│   │   └── utils/        # Shared utilities (observability, storage)
+│   ├── test/             # Backend tests
+│   └── pyproject.toml    # Python dependencies
+├── frontend-static/      # Next.js static site
 │   ├── src/
-│   │   ├── routes/    # TanStack Router routes
-│   │   ├── features/  # Feature-based components
-│   │   ├── components/# Shared components & shadcn/ui
-│   │   ├── client/    # Generated API client
-│   │   └── lib/       # Utility functions
-│   └── package.json   # Frontend dependencies
-├── docs/              # Documentation
-├── infra/             # Infrastructure scripts (DB setup)
-├── .github/workflows/ # CI/CD workflows
-├── docker-compose.yml # Multi-container setup
-└── Justfile           # Task automation
+│   │   ├── pages/        # Next.js pages
+│   │   ├── components/   # React components
+│   │   └── client/       # Generated API client types
+│   ├── public/           # Static assets
+│   │   └── data/         # JSON data for static generation
+│   └── package.json      # Frontend dependencies
+├── docs/                 # Documentation
+├── infra/                # Infrastructure scripts (DB setup)
+├── .github/workflows/    # CI/CD workflows
+├── docker-compose.yml    # Multi-container setup
+└── Justfile              # Task automation
 ```
-
-**Note on Authentication:** This template doesn't include authentication by default. For production apps, we recommend Auth0 with `fastapi-auth0` (backend) and `@auth0/auth0-react` (frontend).
 
 ## Tech Stack
 
 **Frontend:**
-- [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) + [Vite](https://vite.dev/)
-- [TanStack Router](https://tanstack.com/router/latest/docs/framework/react/overview) for routing
-- [shadcn/ui](https://ui.shadcn.com/) + [Tailwind CSS](https://tailwindcss.com/) for styling
-- [TanStack Query](https://tanstack.com/query/latest/docs/framework/react/overview) for API state management
-- [openapi-ts](https://github.com/hey-api/openapi-ts) for API client generation
-  - Word for the wise: upgrade with extreme caution. It seems like every release has significant breaking changes.
+- [Next.js](https://nextjs.org/) (Static Site Generation) + [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- [Tailwind CSS](https://tailwindcss.com/) for styling
+- [openapi-ts](https://github.com/hey-api/openapi-ts) for API client type generation
 
 **Backend:**
 - [FastAPI](https://fastapi.tiangolo.com/)
@@ -179,5 +183,6 @@ TODO
 - **Code Quality**: Pre-commit hooks with [Ruff](https://github.com/astral-sh/ruff) (Python) and [Biome](https://biomejs.dev/) (TypeScript/JavaScript)
 
 **Production Deployment:**
-- Docker/Docker Compose for building and running the application
-- Cloudflare Tunnel acts as a reverse proxy for the application to expose it to the internet
+- Docker/Docker Compose for backend services
+- Cloudflare Pages for static site hosting
+- Automated pipeline via Celery for content processing and deployment
