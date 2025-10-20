@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import type { GetStaticProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
@@ -234,13 +235,24 @@ export default function Home({ opinions, seasons }: HomeProps) {
           </div>
 
           {/* Search Bar */}
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search opinions by caption, topics, holdings, facts..."
-            className="w-full text-sm text-foreground/80 px-4 py-2 border border-border rounded-sm bg-background hover:border-accent focus:border-accent focus:outline-none transition-colors"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Search opinions by caption, topics, holdings, facts..."
+              className="w-full text-sm text-foreground/80 px-4 py-2 pr-10 border border-border rounded-sm bg-background hover:border-accent focus:border-accent focus:outline-none transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => handleSearchChange("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-foreground/50 hover:text-foreground/80 transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         {filteredOpinions.length === 0 ? (
