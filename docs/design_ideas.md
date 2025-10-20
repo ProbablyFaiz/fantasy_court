@@ -37,6 +37,7 @@ automated pipeline:
  - transcribes segments
  - creates cases
  - creates opinions
+ - creates citations
  - exports opinions
  - builds next js static site with reference to exported opinions
  - deploys static site to cloudflare pages with wrangler
