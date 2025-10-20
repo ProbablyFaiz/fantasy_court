@@ -9,7 +9,10 @@ export default function Layout({ children }: LayoutProps) {
     <div className="min-h-screen bg-background flex flex-col">
       <main className="flex-grow">{children}</main>
 
-      <footer className="mt-2 pt-8 border-t border-border text-center text-sm text-foreground/60">
+      <footer
+        id="about"
+        className="mt-2 pt-8 border-t border-border text-center text-sm text-foreground/60"
+      >
         <div className="max-w-4xl mx-auto px-6 pb-8">
           <p>
             This project is inspired by the Fantasy Court segment from{" "}

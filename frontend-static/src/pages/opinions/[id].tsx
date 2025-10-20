@@ -195,10 +195,10 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
         </header>
 
         {/* Opinion Content */}
-        <article className="space-y-6">
+        <article>
           {/* Procedural Posture */}
           {opinion.case.procedural_posture && (
-            <div className="text-sm text-foreground/70 pb-2 border-b border-border/30">
+            <div className="text-sm text-foreground/70 pb-4 mb-4 border-b border-border/30">
               <span className="font-equity-caps text-foreground/80">
                 Procedural Posture:
               </span>{" "}
@@ -218,13 +218,13 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
 
           {/* Authorship */}
           <div
-            className="text-base text-foreground/80"
+            className="text-base text-foreground/80 mb-6"
             dangerouslySetInnerHTML={{ __html: opinion.authorship_html }}
           />
 
           {/* Opinion Body */}
           <div
-            className="opinion-body text-base leading-relaxed mt-4"
+            className="opinion-body text-base leading-relaxed"
             dangerouslySetInnerHTML={{ __html: opinion.opinion_body_html }}
           />
 

@@ -20,6 +20,9 @@
       },
       "a11y": {
         "useButtonType": "off"
+      },
+      "nursery": {
+        "useUniqueElementIds": "off"
       }
     },
     "includes": [

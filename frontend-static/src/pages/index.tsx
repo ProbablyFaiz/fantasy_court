@@ -3,6 +3,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { OpinionItemOutput } from "@/client/types.gen";
+import { Select, SelectItem } from "@/components/Select";
 
 interface HomeProps {
   opinions: OpinionItemOutput[];
@@ -38,6 +39,7 @@ export default function Home({ opinions, seasons }: HomeProps) {
   const [opinionType, setOpinionType] = useState<
     "all" | "unanimous" | "divided"
   >("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -49,10 +51,12 @@ export default function Home({ opinions, seasons }: HomeProps) {
         const {
           selectedSeason: savedSeason,
           opinionType: savedType,
+          searchQuery: savedSearch,
           currentPage: savedPage,
         } = JSON.parse(saved);
         if (savedSeason !== undefined) setSelectedSeason(savedSeason);
         if (savedType) setOpinionType(savedType);
+        if (savedSearch) setSearchQuery(savedSearch);
         if (savedPage) setCurrentPage(savedPage);
       }
     } catch (error) {
@@ -66,15 +70,29 @@ export default function Home({ opinions, seasons }: HomeProps) {
     try {
       sessionStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ selectedSeason, opinionType, currentPage }),
+        JSON.stringify({
+          selectedSeason,
+          opinionType,
+          searchQuery,
+          currentPage,
+        }),
       );
     } catch (error) {
       // Ignore storage errors (e.g., in incognito mode)
       console.error("Failed to save filters:", error);
     }
-  }, [selectedSeason, opinionType, currentPage]);
+  }, [selectedSeason, opinionType, searchQuery, currentPage]);
 
-  // Filter opinions by selected season and opinion type
+  // Helper to strip HTML tags for searching
+  const stripHtml = (html: string | null) => {
+    if (!html) return "";
+    return html
+      .replace(/<[^>]*>/g, "")
+      .replace(/&[^;]+;/g, " ")
+      .trim();
+  };
+
+  // Filter opinions by selected season, opinion type, and search query
   const filteredOpinions = useMemo(() => {
     return opinions.filter((opinion) => {
       // Season filter
@@ -92,9 +110,32 @@ export default function Home({ opinions, seasons }: HomeProps) {
         if (opinionType === "divided" && !hasDissentMention) return false;
       }
 
+      // Search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const searchableText = [
+          opinion.case.case_caption,
+          opinion.case.docket_number,
+          opinion.case.fact_summary,
+          stripHtml(opinion.case.questions_presented_html),
+          opinion.case.procedural_posture,
+          opinion.case.case_topics?.join(" "),
+          opinion.case.episode.title,
+          stripHtml(opinion.case.episode.description_html),
+          stripHtml(opinion.authorship_html),
+          stripHtml(opinion.holding_statement_html),
+          stripHtml(opinion.reasoning_summary_html),
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        if (!searchableText.includes(query)) return false;
+      }
+
       return true;
     });
-  }, [opinions, selectedSeason, opinionType]);
+  }, [opinions, selectedSeason, opinionType, searchQuery]);
 
   // Paginate filtered opinions
   const totalPages = Math.ceil(filteredOpinions.length / itemsPerPage);
@@ -111,6 +152,11 @@ export default function Home({ opinions, seasons }: HomeProps) {
   const handleOpinionTypeChange = (type: "all" | "unanimous" | "divided") => {
     setOpinionType(type);
     setCurrentPage(1); // Reset to first page when filter changes
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1); // Reset to first page when search changes
   };
   return (
     <>
@@ -149,45 +195,52 @@ export default function Home({ opinions, seasons }: HomeProps) {
         </header>
 
         {/* Opinions List Header with Filters */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="font-equity-caps text-2xl text-foreground/90">
-            Opinions
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="font-equity-caps text-2xl text-foreground/90">
+              Opinions
+            </div>
+
+            <div className="flex gap-3">
+              {/* Opinion Type Filter Dropdown */}
+              <Select
+                value={opinionType}
+                onValueChange={(value) =>
+                  handleOpinionTypeChange(
+                    value as "all" | "unanimous" | "divided",
+                  )
+                }
+              >
+                <SelectItem value="all">All Opinions</SelectItem>
+                <SelectItem value="unanimous">Unanimous</SelectItem>
+                <SelectItem value="divided">Divided</SelectItem>
+              </Select>
+
+              {/* Season Filter Dropdown */}
+              <Select
+                value={selectedSeason?.toString() ?? "all"}
+                onValueChange={(value) =>
+                  handleSeasonChange(value === "all" ? null : parseInt(value))
+                }
+              >
+                <SelectItem value="all">All Seasons</SelectItem>
+                {seasons.map((season) => (
+                  <SelectItem key={season} value={season.toString()}>
+                    {season}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
           </div>
 
-          <div className="flex gap-3">
-            {/* Opinion Type Filter Dropdown */}
-            <select
-              value={opinionType}
-              onChange={(e) =>
-                handleOpinionTypeChange(
-                  e.target.value as "all" | "unanimous" | "divided",
-                )
-              }
-              className="text-sm text-foreground/80 px-4 py-2 border border-border rounded-sm bg-background hover:border-accent transition-colors cursor-pointer"
-            >
-              <option value="all">All Opinions</option>
-              <option value="unanimous">Unanimous</option>
-              <option value="divided">Divided</option>
-            </select>
-
-            {/* Season Filter Dropdown */}
-            <select
-              value={selectedSeason ?? "all"}
-              onChange={(e) =>
-                handleSeasonChange(
-                  e.target.value === "all" ? null : parseInt(e.target.value),
-                )
-              }
-              className="text-sm text-foreground/80 px-4 py-2 border border-border rounded-sm bg-background hover:border-accent transition-colors cursor-pointer"
-            >
-              <option value="all">All Seasons</option>
-              {seasons.map((season) => (
-                <option key={season} value={season}>
-                  {season}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Search Bar */}
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Search opinions by caption, topics, holdings, facts..."
+            className="w-full text-sm text-foreground/80 px-4 py-2 border border-border rounded-sm bg-background hover:border-accent focus:border-accent focus:outline-none transition-colors"
+          />
         </div>
 
         {filteredOpinions.length === 0 ? (
