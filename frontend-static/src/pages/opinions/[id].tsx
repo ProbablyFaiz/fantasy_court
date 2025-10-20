@@ -196,6 +196,16 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
 
         {/* Opinion Content */}
         <article className="space-y-6">
+          {/* Procedural Posture */}
+          {opinion.case.procedural_posture && (
+            <div className="text-sm text-foreground/70 pb-4 border-b border-border/30">
+              <span className="font-equity-caps text-foreground/80">
+                Procedural Posture:
+              </span>{" "}
+              {opinion.case.procedural_posture}
+            </div>
+          )}
+
           {/* Holding */}
           <div className="bg-accent/5 border-l-4 border-accent p-6 pt-4 pb-4 mb-8 rounded-r">
             <div

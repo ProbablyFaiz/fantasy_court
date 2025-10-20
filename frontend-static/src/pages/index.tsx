@@ -1,7 +1,6 @@
 import type { GetStaticProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import type { OpinionItemOutput } from "@/client/types.gen";
 
@@ -32,61 +31,70 @@ function getSeason(pubDate: string): number {
   return month < 5 ? year - 1 : year;
 }
 
+const STORAGE_KEY = "fantasy-court-filters";
+
 export default function Home({ opinions, seasons }: HomeProps) {
-  const router = useRouter();
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
+  const [opinionType, setOpinionType] = useState<
+    "all" | "unanimous" | "divided"
+  >("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
 
-  // Initialize page from query params
+  // Load saved filters from sessionStorage on mount
   useEffect(() => {
-    const pageParam = router.query.page;
-    if (pageParam) {
-      const page = parseInt(pageParam as string, 10);
-      if (!Number.isNaN(page) && page > 0) {
-        setCurrentPage(page);
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const {
+          selectedSeason: savedSeason,
+          opinionType: savedType,
+          currentPage: savedPage,
+        } = JSON.parse(saved);
+        if (savedSeason !== undefined) setSelectedSeason(savedSeason);
+        if (savedType) setOpinionType(savedType);
+        if (savedPage) setCurrentPage(savedPage);
       }
+    } catch (error) {
+      // Ignore errors from parsing invalid JSON
+      console.error("Failed to load saved filters:", error);
     }
-  }, [router.query.page]);
+  }, []);
 
-  // Update query params when page changes
+  // Save filters to sessionStorage whenever they change
   useEffect(() => {
-    // Only update URL if we're on the index page
-    if (router.pathname !== "/") return;
+    try {
+      sessionStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ selectedSeason, opinionType, currentPage }),
+      );
+    } catch (error) {
+      // Ignore storage errors (e.g., in incognito mode)
+      console.error("Failed to save filters:", error);
+    }
+  }, [selectedSeason, opinionType, currentPage]);
 
-    const updateUrl = () => {
-      if (currentPage === 1) {
-        // Remove page param on page 1
-        const { page: _page, ...rest } = router.query;
-        router.replace({ pathname: "/", query: rest }, undefined, {
-          shallow: true,
-        });
-      } else {
-        // Set page param for other pages
-        router.replace(
-          {
-            pathname: "/",
-            query: { page: currentPage },
-          },
-          undefined,
-          { shallow: true },
-        );
-      }
-    };
-
-    updateUrl();
-  }, [currentPage]);
-
-  // Filter opinions by selected season
+  // Filter opinions by selected season and opinion type
   const filteredOpinions = useMemo(() => {
-    if (selectedSeason === null) {
-      return opinions;
-    }
     return opinions.filter((opinion) => {
-      const season = getSeason(opinion.case.episode.pub_date);
-      return season === selectedSeason;
+      // Season filter
+      if (selectedSeason !== null) {
+        const season = getSeason(opinion.case.episode.pub_date);
+        if (season !== selectedSeason) return false;
+      }
+
+      // Opinion type filter
+      if (opinionType !== "all") {
+        const hasDissentMention = opinion.authorship_html
+          .toLowerCase()
+          .includes("dissent");
+        if (opinionType === "unanimous" && hasDissentMention) return false;
+        if (opinionType === "divided" && !hasDissentMention) return false;
+      }
+
+      return true;
     });
-  }, [opinions, selectedSeason]);
+  }, [opinions, selectedSeason, opinionType]);
 
   // Paginate filtered opinions
   const totalPages = Math.ceil(filteredOpinions.length / itemsPerPage);
@@ -99,19 +107,22 @@ export default function Home({ opinions, seasons }: HomeProps) {
     setSelectedSeason(season);
     setCurrentPage(1); // Reset to first page when filter changes
   };
+
+  const handleOpinionTypeChange = (type: "all" | "unanimous" | "divided") => {
+    setOpinionType(type);
+    setCurrentPage(1); // Reset to first page when filter changes
+  };
   return (
     <>
       <Head>
-        <title>
-          Fantasy Court - Judicial Opinions from the Fantasy Football Podcast
-        </title>
+        <title>Fantasy Court</title>
         <meta
           name="description"
           content="Browse judicial opinions from the Fantasy Court podcast, the premier authority on fantasy football disputes and league controversies. Written opinions on trades, roster management, commissioner powers, and league rules."
         />
         <meta
           property="og:title"
-          content="Fantasy Court - Fantasy Football Judicial Opinions"
+          content="Fantasy Court - Judicial Opinions from the Fantasy Football Podcast"
         />
         <meta
           property="og:description"
@@ -122,7 +133,7 @@ export default function Home({ opinions, seasons }: HomeProps) {
         <meta name="twitter:card" content="summary_large_image" />
         <meta
           name="twitter:title"
-          content="Fantasy Court - Fantasy Football Judicial Opinions"
+          content="Fantasy Court - Judicial Opinions from the Fantasy Football Podcast"
         />
         <meta
           name="twitter:description"
@@ -137,29 +148,46 @@ export default function Home({ opinions, seasons }: HomeProps) {
           </h1>
         </header>
 
-        {/* Opinions List Header with Season Filter */}
+        {/* Opinions List Header with Filters */}
         <div className="flex items-center justify-between mb-6">
           <div className="font-equity-caps text-2xl text-foreground/90">
             Opinions
           </div>
 
-          {/* Season Filter Dropdown */}
-          <select
-            value={selectedSeason ?? "all"}
-            onChange={(e) =>
-              handleSeasonChange(
-                e.target.value === "all" ? null : parseInt(e.target.value),
-              )
-            }
-            className="text-sm text-foreground/80 px-4 py-2 border border-border rounded-sm bg-background hover:border-accent transition-colors cursor-pointer"
-          >
-            <option value="all">All Seasons</option>
-            {seasons.map((season) => (
-              <option key={season} value={season}>
-                {season}
-              </option>
-            ))}
-          </select>
+          <div className="flex gap-3">
+            {/* Opinion Type Filter Dropdown */}
+            <select
+              value={opinionType}
+              onChange={(e) =>
+                handleOpinionTypeChange(
+                  e.target.value as "all" | "unanimous" | "divided",
+                )
+              }
+              className="text-sm text-foreground/80 px-4 py-2 border border-border rounded-sm bg-background hover:border-accent transition-colors cursor-pointer"
+            >
+              <option value="all">All Opinions</option>
+              <option value="unanimous">Unanimous</option>
+              <option value="divided">Divided</option>
+            </select>
+
+            {/* Season Filter Dropdown */}
+            <select
+              value={selectedSeason ?? "all"}
+              onChange={(e) =>
+                handleSeasonChange(
+                  e.target.value === "all" ? null : parseInt(e.target.value),
+                )
+              }
+              className="text-sm text-foreground/80 px-4 py-2 border border-border rounded-sm bg-background hover:border-accent transition-colors cursor-pointer"
+            >
+              <option value="all">All Seasons</option>
+              {seasons.map((season) => (
+                <option key={season} value={season}>
+                  {season}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {filteredOpinions.length === 0 ? (
