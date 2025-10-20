@@ -1,6 +1,7 @@
 import type { GetStaticPaths, GetStaticProps } from "next";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
+import { useEffect, useMemo, useState } from "react";
 import type { OpinionRead } from "@/client/types.gen";
 import CaseAudioPlayer from "@/components/AudioPlayer";
 
@@ -9,49 +10,79 @@ interface OpinionPageProps {
 }
 
 function formatCaseCaption(caption: string) {
-  const parts = caption.split(/( v\. )/i);
-
-  return (
-    <>
-      {parts.map((part, idx) => {
-        if (part.match(/^ v\. $/i)) {
-          return (
-            <em key={idx} className="font-equity">
-              {part}
-            </em>
-          );
-        }
-        return (
-          <span key={idx} className="font-equity-caps">
-            {part}
-          </span>
-        );
-      })}
-    </>
+  // Split on " v. " (with spaces) and wrap v. in italics, rest in small caps
+  // Need to handle HTML entities from smartypants
+  const formatted = caption.replace(
+    /( v\. )/gi,
+    '<em class="font-equity">$1</em>',
   );
+
+  return `<span class="font-equity-caps">${formatted}</span>`;
 }
 
 export default function OpinionPage({ opinion }: OpinionPageProps) {
+  const router = useRouter();
   const [copied, setCopied] = useState(false);
 
-  // Handle citation links after component mounts
-  useEffect(() => {
-    const handleCitationClicks = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const citationSpan = target.closest("[data-cite-docket]");
+  // Create a mapping from docket number to opinion ID
+  const docketToIdMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const citedCase of opinion.case.cases_cited) {
+      if (citedCase.opinion) {
+        map.set(citedCase.docket_number, citedCase.opinion.id);
+      }
+    }
+    return map;
+  }, [opinion.case.cases_cited]);
 
-      if (citationSpan) {
+  // Convert citation spans to anchor tags after component mounts
+  useEffect(() => {
+    const citationSpans = document.querySelectorAll("[data-cite-docket]");
+    const anchors: HTMLAnchorElement[] = [];
+
+    citationSpans.forEach((span) => {
+      const docket = span.getAttribute("data-cite-docket");
+      if (docket && docketToIdMap.has(docket)) {
+        const opinionId = docketToIdMap.get(docket);
+
+        // Wrap the span in an anchor tag
+        const anchor = document.createElement("a");
+        anchor.href = `/opinions/${opinionId}`;
+        anchor.className =
+          "text-accent hover:underline transition-colors cursor-pointer";
+        anchor.setAttribute("aria-label", `Link to cited case ${docket}`);
+
+        // Replace span with anchor containing the span's content
+        const parent = span.parentNode;
+        if (parent) {
+          anchor.innerHTML = span.innerHTML;
+          anchor.setAttribute("data-cite-docket", docket);
+          parent.replaceChild(anchor, span);
+          anchors.push(anchor);
+        }
+      }
+    });
+
+    // Handle clicks for client-side navigation
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const anchor = target.closest("a[data-cite-docket]") as HTMLAnchorElement;
+
+      if (anchor) {
         e.preventDefault();
-        const docket = citationSpan.getAttribute("data-cite-docket");
-        // For now, citations are not clickable - we'd need a docket->id mapping
-        // Future enhancement: add links when we have the mapping
-        console.log("Citation clicked:", docket);
+        const href = anchor.getAttribute("href");
+        if (href) {
+          router.push(href);
+        }
       }
     };
 
-    document.addEventListener("click", handleCitationClicks);
-    return () => document.removeEventListener("click", handleCitationClicks);
-  }, []);
+    document.addEventListener("click", handleClick);
+
+    return () => {
+      document.removeEventListener("click", handleClick);
+    };
+  }, [docketToIdMap, router]);
 
   const handleCopyCitation = async () => {
     const year = new Date(opinion.case.episode.pub_date).getFullYear();
@@ -77,9 +108,15 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
       {/* Case Header */}
       <header className="mb-8 pb-8 border-b-2 border-accent">
         <h1 className="text-2xl font-bold text-foreground mb-4">
-          {opinion.case.case_caption
-            ? formatCaseCaption(opinion.case.case_caption)
-            : "Untitled Case"}{" "}
+          {opinion.case.case_caption ? (
+            <span
+              dangerouslySetInnerHTML={{
+                __html: formatCaseCaption(opinion.case.case_caption),
+              }}
+            />
+          ) : (
+            "Untitled Case"
+          )}{" "}
           ({new Date(opinion.case.episode.pub_date).getFullYear()})
         </h1>
 
@@ -132,7 +169,7 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
 
         {/* Opinion Body */}
         <div
-          className="opinion-body text-base leading-relaxed mt-4 text-justify"
+          className="opinion-body text-base leading-relaxed mt-4"
           dangerouslySetInnerHTML={{ __html: opinion.opinion_body_html }}
         />
 
@@ -140,9 +177,16 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
         <div className="mt-12 pt-8 border-t border-border">
           <div className="text-sm text-foreground/60 mb-2">
             <span className="font-equity-caps">Cite as:</span>{" "}
-            <em className="font-equity">
-              {opinion.case.case_caption || "Untitled Case"}
-            </em>
+            {opinion.case.case_caption ? (
+              <em
+                className="font-equity"
+                dangerouslySetInnerHTML={{
+                  __html: opinion.case.case_caption,
+                }}
+              />
+            ) : (
+              <em className="font-equity">Untitled Case</em>
+            )}
             , No. {opinion.case.docket_number} (
             {new Date(opinion.case.episode.pub_date).getFullYear()})
             <button

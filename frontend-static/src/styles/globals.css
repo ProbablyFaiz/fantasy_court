@@ -86,6 +86,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-equity);
+  font-size: 18px;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -164,12 +165,12 @@ body {
 }
 
 /* Citation links styling */
-.opinion-body [data-cite-docket] {
+.opinion-body a[data-cite-docket] {
   color: var(--accent);
   text-decoration: none;
-  cursor: default;
+  cursor: pointer;
 }
 
-.opinion-body [data-cite-docket]:hover {
+.opinion-body a[data-cite-docket]:hover {
   text-decoration: underline;
 }

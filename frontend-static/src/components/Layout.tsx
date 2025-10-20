@@ -13,9 +13,14 @@ export default function Layout({ children }: LayoutProps) {
         <div className="max-w-4xl mx-auto px-6 pb-8">
           <p>
             This project is inspired by the Fantasy Court segment from{" "}
-            <span className="font-equity italic">
+            <a
+              href="https://www.theringer.com/podcasts/the-ringer-fantasy-football-show"
+              className="font-equity italic text-accent hover:underline transition-colors"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               The Ringer Fantasy Football Show
-            </span>
+            </a>
             . Not affiliated with The Ringer.
           </p>
         </div>

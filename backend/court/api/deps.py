@@ -39,8 +39,12 @@ def get_case(db: Annotated[Session, Depends(get_db)], case_id: int) -> FantasyCo
         .options(
             selectinload(FantasyCourtCase.episode),
             selectinload(FantasyCourtCase.opinion),
-            selectinload(FantasyCourtCase.cases_cited),
-            selectinload(FantasyCourtCase.cases_citing),
+            selectinload(FantasyCourtCase.cases_cited).selectinload(
+                FantasyCourtCase.opinion
+            ),
+            selectinload(FantasyCourtCase.cases_citing).selectinload(
+                FantasyCourtCase.opinion
+            ),
         )
     )
     case = db.execute(query).scalar_one_or_none()

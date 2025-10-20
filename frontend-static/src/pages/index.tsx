@@ -10,27 +10,14 @@ interface HomeProps {
 }
 
 function formatCaseCaption(caption: string) {
-  // Split on " v. " (with spaces) and render v. in italics, rest in small caps
-  const parts = caption.split(/( v\. )/i);
-
-  return (
-    <>
-      {parts.map((part, idx) => {
-        if (part.match(/^ v\. $/i)) {
-          return (
-            <em key={idx} className="font-equity">
-              {part}
-            </em>
-          );
-        }
-        return (
-          <span key={idx} className="font-equity-caps">
-            {part}
-          </span>
-        );
-      })}
-    </>
+  // Split on " v. " (with spaces) and wrap v. in italics, rest in small caps
+  // Need to handle HTML entities from smartypants
+  const formatted = caption.replace(
+    /( v\. )/gi,
+    '<em class="font-equity">$1</em>',
   );
+
+  return `<em class="font-equity">${formatted}</em>`;
 }
 
 // Calculate season based on pub_date
@@ -151,10 +138,16 @@ export default function Home({ opinions, seasons }: HomeProps) {
               >
                 <article>
                   {/* Case Caption */}
-                  <h3 className="text-lg font-bold text-foreground mb-2">
-                    {opinion.case.case_caption
-                      ? formatCaseCaption(opinion.case.case_caption)
-                      : "Untitled Case"}{" "}
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    {opinion.case.case_caption ? (
+                      <span
+                        dangerouslySetInnerHTML={{
+                          __html: formatCaseCaption(opinion.case.case_caption),
+                        }}
+                      />
+                    ) : (
+                      "Untitled Case"
+                    )}{" "}
                     ({new Date(opinion.case.episode.pub_date).getFullYear()})
                   </h3>
 
@@ -186,7 +179,7 @@ export default function Home({ opinions, seasons }: HomeProps) {
 
                   {/* Holding Statement */}
                   <div
-                    className="text-base text-foreground/90 leading-relaxed"
+                    className="bg-accent/5 border-l-4 border-accent p-4 rounded-r text-base leading-relaxed"
                     dangerouslySetInnerHTML={{
                       __html: opinion.holding_statement_html,
                     }}

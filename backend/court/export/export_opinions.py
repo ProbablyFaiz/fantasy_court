@@ -23,7 +23,15 @@ def apply_smartypants(data: Any) -> Any:
         return {
             key: (
                 smartypants.smartypants(value)
-                if isinstance(value, str) and key.endswith("_html")
+                if isinstance(value, str)
+                and key
+                in (
+                    "authorship_html",
+                    "holding_statement_html",
+                    "reasoning_summary_html",
+                    "opinion_body_html",
+                    "case_caption",
+                )
                 else apply_smartypants(value)
             )
             for key, value in data.items()
@@ -57,12 +65,12 @@ def export_opinions(output_dir: Path) -> None:
             selectinload(FantasyCourtOpinion.case).selectinload(
                 FantasyCourtCase.episode
             ),
-            selectinload(FantasyCourtOpinion.case).selectinload(
-                FantasyCourtCase.cases_cited
-            ),
-            selectinload(FantasyCourtOpinion.case).selectinload(
-                FantasyCourtCase.cases_citing
-            ),
+            selectinload(FantasyCourtOpinion.case)
+            .selectinload(FantasyCourtCase.cases_cited)
+            .selectinload(FantasyCourtCase.opinion),
+            selectinload(FantasyCourtOpinion.case)
+            .selectinload(FantasyCourtCase.cases_citing)
+            .selectinload(FantasyCourtCase.opinion),
         )
         .order_by(PodcastEpisode.pub_date.desc())
     )

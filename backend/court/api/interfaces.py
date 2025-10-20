@@ -71,6 +71,15 @@ class CaseItem(CaseBase):
     episode: EpisodeItem
 
 
+# Opinion interfaces - defined early to avoid circular imports
+class CitedOpinionItem(ApiModel):
+    """Minimal opinion information for citations - avoids circular dependency."""
+
+    id: int
+    authorship_html: str
+    holding_statement_html: str
+
+
 class CitedCaseItem(ApiModel):
     """Minimal case information for citations."""
 
@@ -78,6 +87,7 @@ class CitedCaseItem(ApiModel):
     docket_number: str
     case_caption: str | None
     episode_id: int
+    opinion: CitedOpinionItem | None
 
 
 class CaseRead(CaseBase):
@@ -89,7 +99,7 @@ class CaseRead(CaseBase):
     cases_citing: list[CitedCaseItem]
 
 
-# Opinion interfaces
+# Full Opinion interfaces
 class OpinionBase(ApiModel):
     id: int
     authorship_html: str

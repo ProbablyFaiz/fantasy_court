@@ -125,6 +125,27 @@ export type CitedCaseItem = {
      * Episode Id
      */
     episode_id: number;
+    opinion: CitedOpinionItem | null;
+};
+
+/**
+ * CitedOpinionItem
+ *
+ * Minimal opinion information for citations - avoids circular dependency.
+ */
+export type CitedOpinionItem = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Authorship Html
+     */
+    authorship_html: string;
+    /**
+     * Holding Statement Html
+     */
+    holding_statement_html: string;
 };
 
 /**
