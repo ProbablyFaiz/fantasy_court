@@ -269,6 +269,44 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
               </div>
             </div>
           )}
+
+          {/* Cases Citing This Opinion */}
+          {opinion.case.cases_citing &&
+            opinion.case.cases_citing.length > 0 && (
+              <div className="mt-8 pt-6 border-t border-border/30">
+                <div className="font-equity-caps text-sm text-foreground/60 mb-3">
+                  Cited By
+                </div>
+                <div className="text-sm text-foreground/70">
+                  {opinion.case.cases_citing.map((citingCase, idx) => {
+                    // Extract year from docket number (format: YY-EEEE-N)
+                    const yearPrefix = citingCase.docket_number.split("-")[0];
+                    const year = `20${yearPrefix}`;
+                    return (
+                      <span key={citingCase.docket_number}>
+                        {idx > 0 && "; "}
+                        <Link
+                          href={`/opinions/${citingCase.docket_number}`}
+                          className="text-accent hover:underline transition-colors"
+                        >
+                          {citingCase.case_caption ? (
+                            <em
+                              className="font-equity"
+                              dangerouslySetInnerHTML={{
+                                __html: citingCase.case_caption,
+                              }}
+                            />
+                          ) : (
+                            <em className="font-equity">Untitled Case</em>
+                          )}
+                          , {citingCase.docket_number} ({year})
+                        </Link>
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
         </article>
       </div>
     </>
