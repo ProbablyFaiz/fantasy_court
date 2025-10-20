@@ -41,17 +41,17 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
     0,
     155,
   );
-  const opinionUrl = `https://fantasycourt.lexeme.dev/opinions/${opinion.id}`;
+  const opinionUrl = `https://fantasycourt.lexeme.dev/opinions/${opinion.case.docket_number}`;
 
-  // Create a mapping from docket number to opinion ID
-  const docketToIdMap = useMemo(() => {
-    const map = new Map<string, number>();
+  // Create a set of docket numbers that have opinions (for citation linking)
+  const validCitationDockets = useMemo(() => {
+    const dockets = new Set<string>();
     for (const citedCase of opinion.case.cases_cited) {
       if (citedCase.opinion) {
-        map.set(citedCase.docket_number, citedCase.opinion.id);
+        dockets.add(citedCase.docket_number);
       }
     }
-    return map;
+    return dockets;
   }, [opinion.case.cases_cited]);
 
   // Convert citation spans to anchor tags after component mounts
@@ -63,9 +63,7 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
 
     citationSpans.forEach((span) => {
       const docket = span.getAttribute("data-cite-docket");
-      if (docket && docketToIdMap.has(docket)) {
-        const opinionId = docketToIdMap.get(docket);
-
+      if (docket && validCitationDockets.has(docket)) {
         // Skip if this is already an anchor tag
         if (span.tagName.toLowerCase() === "a") {
           return;
@@ -74,7 +72,7 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
         // Wrap the span in an anchor tag
         const anchor = document.createElement("a");
 
-        anchor.href = `/opinions/${opinionId}`;
+        anchor.href = `/opinions/${docket}`;
         anchor.className =
           "text-accent hover:underline transition-colors cursor-pointer";
         anchor.setAttribute("aria-label", `Link to cited case ${docket}`);
@@ -109,7 +107,7 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
     return () => {
       opinionBody.removeEventListener("click", handleClick);
     };
-  }, [docketToIdMap, router]);
+  }, [validCitationDockets, router]);
 
   const handleCopyCitation = async () => {
     const year = new Date(opinion.case.episode.pub_date).getFullYear();
@@ -283,7 +281,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
 
   const indexPath = path.join(process.cwd(), "public", "data", "index.json");
 
-  let opinions: Array<{ id: number }> = [];
+  let opinions: Array<{ case: { docket_number: string } }> = [];
 
   try {
     const data = await fs.readFile(indexPath, "utf-8");
@@ -293,7 +291,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
   }
 
   const paths = opinions.map((opinion) => ({
-    params: { id: opinion.id.toString() },
+    params: { id: opinion.case.docket_number },
   }));
 
   return {

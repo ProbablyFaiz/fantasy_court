@@ -265,7 +265,7 @@ export default function Home({ opinions, seasons }: HomeProps) {
               {paginatedOpinions.map((opinion) => (
                 <Link
                   key={opinion.id}
-                  href={`/opinions/${opinion.id}`}
+                  href={`/opinions/${opinion.case.docket_number}`}
                   className="block border border-border hover:border-accent transition-colors duration-200 bg-background hover:bg-accent/5 p-6 rounded-sm"
                 >
                   <article>

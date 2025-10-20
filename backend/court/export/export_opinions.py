@@ -47,7 +47,7 @@ def export_opinions(output_dir: Path) -> None:
 
     Creates:
         - index.json: List of OpinionItem objects with metadata
-        - opinions/{id}.json: Full OpinionRead for each opinion
+        - opinions/{docket_number}.json: Full OpinionRead for each opinion
     """
     session: Session = get_session()
 
@@ -97,11 +97,11 @@ def export_opinions(output_dir: Path) -> None:
         # Apply smart quotes to HTML fields
         opinion_data = apply_smartypants(opinion_data)
 
-        opinion_path = opinions_dir / f"{opinion.id}.json"
+        opinion_path = opinions_dir / f"{opinion.case.docket_number}.json"
         with opinion_path.open("w") as f:
             json.dump(opinion_data, f, indent=2)
 
-        pbar.set_postfix({"id": opinion.id})
+        pbar.set_postfix({"docket": opinion.case.docket_number})
 
     print(f"Exported {len(opinions)} opinions to {output_dir}")
     print(f"  - index.json: {len(opinion_items)} opinion items")
