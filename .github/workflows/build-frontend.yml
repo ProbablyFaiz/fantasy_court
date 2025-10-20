@@ -20,9 +20,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd frontend && pnpm install --frozen-lockfile
+          cd frontend-static && pnpm install --frozen-lockfile
 
-      - name: Build frontend
-        run: cd frontend && pnpm run build
-        env:
-          VITE_FANTASY_COURT_API_URL: /api
+      - name: Create placeholder data files
+        run: |
+          mkdir -p frontend-static/public/data/opinions
+          echo '[]' > frontend-static/public/data/index.json
+
+      - name: Build frontend (Next.js)
+        run: cd frontend-static && pnpm run build
