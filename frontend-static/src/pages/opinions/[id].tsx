@@ -1,4 +1,5 @@
 import type { GetStaticPaths, GetStaticProps } from "next";
+import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
@@ -23,6 +24,24 @@ function formatCaseCaption(caption: string) {
 export default function OpinionPage({ opinion }: OpinionPageProps) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
+
+  // Helper function to strip HTML tags for meta descriptions
+  const stripHtml = (html: string) => {
+    return html
+      .replace(/<[^>]*>/g, "")
+      .replace(/&[^;]+;/g, " ")
+      .trim();
+  };
+
+  // Create title and description for meta tags
+  const pageTitle = opinion.case.case_caption
+    ? `${opinion.case.case_caption} - Fantasy Court`
+    : "Opinion - Fantasy Court";
+  const pageDescription = stripHtml(opinion.holding_statement_html).substring(
+    0,
+    155,
+  );
+  const opinionUrl = `https://fantasycourt.lexeme.dev/opinions/${opinion.id}`;
 
   // Create a mapping from docket number to opinion ID
   const docketToIdMap = useMemo(() => {
@@ -102,130 +121,149 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-12">
-      {/* Header with back link */}
-      <div className="mb-8">
-        <Link
-          href="/"
-          className="font-equity-caps text-sm text-accent hover:underline"
-        >
-          ← Back to Opinions
-        </Link>
-      </div>
-
-      {/* Case Header */}
-      <header className="mb-8 pb-8 border-b-2 border-accent">
-        <h1 className="text-2xl font-bold text-foreground mb-4">
-          {opinion.case.case_caption ? (
-            <span
-              dangerouslySetInnerHTML={{
-                __html: formatCaseCaption(opinion.case.case_caption),
-              }}
-            />
-          ) : (
-            "Untitled Case"
-          )}{" "}
-          ({new Date(opinion.case.episode.pub_date).getFullYear()})
-        </h1>
-
-        <div className="text-base text-foreground/70 space-y-2">
-          <div className="font-equity-caps">
-            No. {opinion.case.docket_number}
-          </div>
-          <div>
-            <em>{opinion.case.episode.title}</em> (
-            {new Date(opinion.case.episode.pub_date).toLocaleDateString(
-              "en-US",
-              {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              },
-            )}
-            )
-          </div>
-
-          {/* Audio Player */}
-          {opinion.case.episode.bucket_mp3_public_url && (
-            <div className="mt-2">
-              <CaseAudioPlayer
-                audioUrl={opinion.case.episode.bucket_mp3_public_url}
-                startTime={opinion.case.start_time_s}
-                endTime={opinion.case.end_time_s}
-                episodeTitle={opinion.case.episode.title}
-              />
-            </div>
-          )}
-        </div>
-      </header>
-
-      {/* Opinion Content */}
-      <article className="space-y-6">
-        {/* Holding */}
-        <div className="bg-accent/5 border-l-4 border-accent p-6 pt-4 pb-4 mb-8 rounded-r">
-          <div
-            className="text-base leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: opinion.holding_statement_html }}
-          />
+    <>
+      <Head>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content={opinionUrl} />
+        <meta
+          property="article:published_time"
+          content={opinion.case.episode.pub_date}
+        />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+      </Head>
+      <div className="max-w-2xl mx-auto px-6 py-12">
+        {/* Header with back link */}
+        <div className="mb-8">
+          <Link
+            href="/"
+            className="font-equity-caps text-sm text-accent hover:underline"
+          >
+            ← Back to Opinions
+          </Link>
         </div>
 
-        {/* Authorship */}
-        <div
-          className="text-base text-foreground/80"
-          dangerouslySetInnerHTML={{ __html: opinion.authorship_html }}
-        />
-
-        {/* Opinion Body */}
-        <div
-          className="opinion-body text-base leading-relaxed mt-4"
-          dangerouslySetInnerHTML={{ __html: opinion.opinion_body_html }}
-        />
-
-        {/* Citation */}
-        <div className="mt-12 pt-8 border-t border-border">
-          <div className="text-sm text-foreground/60 mb-2">
-            <span className="font-equity-caps">Cite as:</span>{" "}
+        {/* Case Header */}
+        <header className="mb-8 pb-8 border-b-2 border-accent">
+          <h1 className="text-2xl font-bold text-foreground mb-4">
             {opinion.case.case_caption ? (
-              <em
-                className="font-equity"
+              <span
                 dangerouslySetInnerHTML={{
-                  __html: opinion.case.case_caption,
+                  __html: formatCaseCaption(opinion.case.case_caption),
                 }}
               />
             ) : (
-              <em className="font-equity">Untitled Case</em>
-            )}
-            , No. {opinion.case.docket_number} (
-            {new Date(opinion.case.episode.pub_date).getFullYear()})
-            <button
-              onClick={handleCopyCitation}
-              className="ml-3 text-accent hover:text-accent/80 transition-colors font-equity-caps text-xs"
-            >
-              {copied ? "Copied!" : "Copy"}
-            </button>
-          </div>
-        </div>
+              "Untitled Case"
+            )}{" "}
+            ({new Date(opinion.case.episode.pub_date).getFullYear()})
+          </h1>
 
-        {/* Topics */}
-        {opinion.case.case_topics && opinion.case.case_topics.length > 0 && (
-          <div className="mt-6">
-            <div className="font-equity-caps text-sm text-foreground/60 mb-3">
-              Topics
+          <div className="text-base text-foreground/70 space-y-2">
+            <div className="font-equity-caps">
+              No. {opinion.case.docket_number}
             </div>
-            <div className="flex flex-wrap gap-2">
-              {opinion.case.case_topics.map((topic, idx) => (
-                <span
-                  key={idx}
-                  className="font-equity-caps text-xs px-2 py-1 bg-accent/10 text-accent rounded-sm"
-                >
-                  {topic}
-                </span>
-              ))}
+            <div>
+              <em>{opinion.case.episode.title}</em> (
+              {new Date(opinion.case.episode.pub_date).toLocaleDateString(
+                "en-US",
+                {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                },
+              )}
+              )
+            </div>
+
+            {/* Audio Player */}
+            {opinion.case.episode.bucket_mp3_public_url && (
+              <div className="mt-2">
+                <CaseAudioPlayer
+                  audioUrl={opinion.case.episode.bucket_mp3_public_url}
+                  startTime={opinion.case.start_time_s}
+                  endTime={opinion.case.end_time_s}
+                  episodeTitle={opinion.case.episode.title}
+                />
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* Opinion Content */}
+        <article className="space-y-6">
+          {/* Holding */}
+          <div className="bg-accent/5 border-l-4 border-accent p-6 pt-4 pb-4 mb-8 rounded-r">
+            <div
+              className="text-base leading-relaxed"
+              dangerouslySetInnerHTML={{
+                __html: opinion.holding_statement_html,
+              }}
+            />
+          </div>
+
+          {/* Authorship */}
+          <div
+            className="text-base text-foreground/80"
+            dangerouslySetInnerHTML={{ __html: opinion.authorship_html }}
+          />
+
+          {/* Opinion Body */}
+          <div
+            className="opinion-body text-base leading-relaxed mt-4"
+            dangerouslySetInnerHTML={{ __html: opinion.opinion_body_html }}
+          />
+
+          {/* Citation */}
+          <div className="mt-12 pt-8 border-t border-border">
+            <div className="text-sm text-foreground/60 mb-2">
+              <span className="font-equity-caps">Cite as:</span>{" "}
+              {opinion.case.case_caption ? (
+                <em
+                  className="font-equity"
+                  dangerouslySetInnerHTML={{
+                    __html: opinion.case.case_caption,
+                  }}
+                />
+              ) : (
+                <em className="font-equity">Untitled Case</em>
+              )}
+              , No. {opinion.case.docket_number} (
+              {new Date(opinion.case.episode.pub_date).getFullYear()})
+              <button
+                onClick={handleCopyCitation}
+                className="ml-3 text-accent hover:text-accent/80 transition-colors font-equity-caps text-xs"
+              >
+                {copied ? "Copied!" : "Copy"}
+              </button>
             </div>
           </div>
-        )}
-      </article>
-    </div>
+
+          {/* Topics */}
+          {opinion.case.case_topics && opinion.case.case_topics.length > 0 && (
+            <div className="mt-6">
+              <div className="font-equity-caps text-sm text-foreground/60 mb-3">
+                Topics
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {opinion.case.case_topics.map((topic, idx) => (
+                  <span
+                    key={idx}
+                    className="font-equity-caps text-xs px-2 py-1 bg-accent/10 text-accent rounded-sm"
+                  >
+                    {topic}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </article>
+      </div>
+    </>
   );
 }
 

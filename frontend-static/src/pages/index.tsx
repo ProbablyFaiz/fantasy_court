@@ -1,4 +1,5 @@
 import type { GetStaticProps } from "next";
+import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
@@ -99,171 +100,206 @@ export default function Home({ opinions, seasons }: HomeProps) {
     setCurrentPage(1); // Reset to first page when filter changes
   };
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12">
-      {/* Header */}
-      <header className="text-center mb-12 border-b-2 border-accent pb-8">
-        <h1 className="font-old-english text-6xl text-accent">Fantasy Court</h1>
-      </header>
+    <>
+      <Head>
+        <title>
+          Fantasy Court - Judicial Opinions from the Fantasy Football Podcast
+        </title>
+        <meta
+          name="description"
+          content="Browse judicial opinions from the Fantasy Court podcast, the premier authority on fantasy football disputes and league controversies. Written opinions on trades, roster management, commissioner powers, and league rules."
+        />
+        <meta
+          property="og:title"
+          content="Fantasy Court - Fantasy Football Judicial Opinions"
+        />
+        <meta
+          property="og:description"
+          content="Browse judicial opinions from the Fantasy Court podcast, the premier authority on fantasy football disputes and league controversies."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://fantasycourt.lexeme.dev/" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta
+          name="twitter:title"
+          content="Fantasy Court - Fantasy Football Judicial Opinions"
+        />
+        <meta
+          name="twitter:description"
+          content="Browse judicial opinions from the Fantasy Court podcast, the premier authority on fantasy football disputes and league controversies."
+        />
+      </Head>
+      <div className="max-w-4xl mx-auto px-6 py-12">
+        {/* Header */}
+        <header className="text-center mb-12 border-b-2 border-accent pb-8">
+          <h1 className="font-old-english text-6xl text-accent">
+            Fantasy Court
+          </h1>
+        </header>
 
-      {/* Opinions List Header with Season Filter */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="font-equity-caps text-2xl text-foreground/90">
-          Opinions
-        </div>
-
-        {/* Season Filter Dropdown */}
-        <select
-          value={selectedSeason ?? "all"}
-          onChange={(e) =>
-            handleSeasonChange(
-              e.target.value === "all" ? null : parseInt(e.target.value),
-            )
-          }
-          className="text-sm text-foreground/80 px-4 py-2 border border-border rounded-sm bg-background hover:border-accent transition-colors cursor-pointer"
-        >
-          <option value="all">All Seasons</option>
-          {seasons.map((season) => (
-            <option key={season} value={season}>
-              {season}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {filteredOpinions.length === 0 ? (
-        <div className="text-center py-16 text-foreground/60">
-          <p>No opinions match the selected filters.</p>
-        </div>
-      ) : (
-        <>
-          <div className="space-y-8">
-            {paginatedOpinions.map((opinion) => (
-              <Link
-                key={opinion.id}
-                href={`/opinions/${opinion.id}`}
-                className="block border border-border hover:border-accent transition-colors duration-200 bg-background hover:bg-accent/5 p-6 rounded-sm"
-              >
-                <article>
-                  {/* Case Caption */}
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
-                    {opinion.case.case_caption ? (
-                      <span
-                        dangerouslySetInnerHTML={{
-                          __html: formatCaseCaption(opinion.case.case_caption),
-                        }}
-                      />
-                    ) : (
-                      "Untitled Case"
-                    )}{" "}
-                    ({new Date(opinion.case.episode.pub_date).getFullYear()})
-                  </h3>
-
-                  {/* Docket Number and Episode */}
-                  <div className="text-sm text-foreground/70 mb-4 space-y-1">
-                    <div className="font-equity-caps">
-                      No. {opinion.case.docket_number}
-                    </div>
-                    <div>
-                      <em>{opinion.case.episode.title}</em> (
-                      {new Date(
-                        opinion.case.episode.pub_date,
-                      ).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                      )
-                    </div>
-                  </div>
-
-                  {/* Authorship */}
-                  <div
-                    className="text-base text-foreground/80 mb-3"
-                    dangerouslySetInnerHTML={{
-                      __html: opinion.authorship_html,
-                    }}
-                  />
-
-                  {/* Holding Statement */}
-                  <div
-                    className="bg-accent/5 border-l-4 border-accent p-4 rounded-r text-base leading-relaxed"
-                    dangerouslySetInnerHTML={{
-                      __html: opinion.holding_statement_html,
-                    }}
-                  />
-                </article>
-              </Link>
-            ))}
+        {/* Opinions List Header with Season Filter */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="font-equity-caps text-2xl text-foreground/90">
+            Opinions
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="mt-12 flex items-center justify-center gap-2">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="px-4 py-2 font-equity-caps text-sm border border-border rounded-sm hover:bg-accent/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Previous
-              </button>
+          {/* Season Filter Dropdown */}
+          <select
+            value={selectedSeason ?? "all"}
+            onChange={(e) =>
+              handleSeasonChange(
+                e.target.value === "all" ? null : parseInt(e.target.value),
+              )
+            }
+            className="text-sm text-foreground/80 px-4 py-2 border border-border rounded-sm bg-background hover:border-accent transition-colors cursor-pointer"
+          >
+            <option value="all">All Seasons</option>
+            {seasons.map((season) => (
+              <option key={season} value={season}>
+                {season}
+              </option>
+            ))}
+          </select>
+        </div>
 
-              <div className="flex gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                  (page) => {
-                    // Show first page, last page, current page, and pages around current
-                    const showPage =
-                      page === 1 ||
-                      page === totalPages ||
-                      Math.abs(page - currentPage) <= 1;
-
-                    const showEllipsis =
-                      (page === 2 && currentPage > 3) ||
-                      (page === totalPages - 1 && currentPage < totalPages - 2);
-
-                    if (showEllipsis) {
-                      return (
+        {filteredOpinions.length === 0 ? (
+          <div className="text-center py-16 text-foreground/60">
+            <p>No opinions match the selected filters.</p>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-8">
+              {paginatedOpinions.map((opinion) => (
+                <Link
+                  key={opinion.id}
+                  href={`/opinions/${opinion.id}`}
+                  className="block border border-border hover:border-accent transition-colors duration-200 bg-background hover:bg-accent/5 p-6 rounded-sm"
+                >
+                  <article>
+                    {/* Case Caption */}
+                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                      {opinion.case.case_caption ? (
                         <span
-                          key={page}
-                          className="px-3 py-2 font-equity-caps text-sm"
-                        >
-                          ...
-                        </span>
-                      );
-                    }
+                          dangerouslySetInnerHTML={{
+                            __html: formatCaseCaption(
+                              opinion.case.case_caption,
+                            ),
+                          }}
+                        />
+                      ) : (
+                        "Untitled Case"
+                      )}{" "}
+                      ({new Date(opinion.case.episode.pub_date).getFullYear()})
+                    </h3>
 
-                    if (!showPage) return null;
+                    {/* Docket Number and Episode */}
+                    <div className="text-sm text-foreground/70 mb-4 space-y-1">
+                      <div className="font-equity-caps">
+                        No. {opinion.case.docket_number}
+                      </div>
+                      <div>
+                        <em>{opinion.case.episode.title}</em> (
+                        {new Date(
+                          opinion.case.episode.pub_date,
+                        ).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                        )
+                      </div>
+                    </div>
 
-                    return (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`px-3 py-2 font-equity-caps text-sm border rounded-sm transition-colors ${
-                          currentPage === page
-                            ? "bg-accent text-background border-accent"
-                            : "border-border hover:bg-accent/10"
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    );
-                  },
-                )}
-              </div>
+                    {/* Authorship */}
+                    <div
+                      className="text-base text-foreground/80 mb-3"
+                      dangerouslySetInnerHTML={{
+                        __html: opinion.authorship_html,
+                      }}
+                    />
 
-              <button
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(totalPages, p + 1))
-                }
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 font-equity-caps text-sm border border-border rounded-sm hover:bg-accent/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Next
-              </button>
+                    {/* Holding Statement */}
+                    <div
+                      className="bg-accent/5 border-l-4 border-accent p-4 rounded-r text-base leading-relaxed"
+                      dangerouslySetInnerHTML={{
+                        __html: opinion.holding_statement_html,
+                      }}
+                    />
+                  </article>
+                </Link>
+              ))}
             </div>
-          )}
-        </>
-      )}
-    </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-12 flex items-center justify-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 font-equity-caps text-sm border border-border rounded-sm hover:bg-accent/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+
+                <div className="flex gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (page) => {
+                      // Show first page, last page, current page, and pages around current
+                      const showPage =
+                        page === 1 ||
+                        page === totalPages ||
+                        Math.abs(page - currentPage) <= 1;
+
+                      const showEllipsis =
+                        (page === 2 && currentPage > 3) ||
+                        (page === totalPages - 1 &&
+                          currentPage < totalPages - 2);
+
+                      if (showEllipsis) {
+                        return (
+                          <span
+                            key={page}
+                            className="px-3 py-2 font-equity-caps text-sm"
+                          >
+                            ...
+                          </span>
+                        );
+                      }
+
+                      if (!showPage) return null;
+
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`px-3 py-2 font-equity-caps text-sm border rounded-sm transition-colors ${
+                            currentPage === page
+                              ? "bg-accent text-background border-accent"
+                              : "border-border hover:bg-accent/10"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    },
+                  )}
+                </div>
+
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 font-equity-caps text-sm border border-border rounded-sm hover:bg-accent/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </>
   );
 }
 

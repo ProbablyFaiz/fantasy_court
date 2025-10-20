@@ -24,6 +24,7 @@ from court.inference import create_cases as create_cases_module
 from court.inference import create_citations as create_citations_module
 from court.inference import create_opinions as create_opinions_module
 from court.inference import create_segments as create_segments_module
+from court.inference import editor_agent
 from court.inference.create_cases import (
     _DEFAULT_MODEL as _DEFAULT_CLAUDE_MODEL,
 )
@@ -611,3 +612,6 @@ inference.add_command(create_cases_module.main, name="create-cases")
 inference.add_command(create_opinions_module.main, name="create-opinions")
 
 inference.add_command(create_citations_module.main, name="create-citations")
+
+# Register interactive editor agent
+inference.add_command(editor_agent.main, name="edit-opinion")
