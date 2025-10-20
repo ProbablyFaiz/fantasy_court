@@ -15,6 +15,18 @@ services:
     container_name: fantasy-court-celery
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - fantasy_court_redis_data:/data
+    environment:
+      - TZ=America/Los_Angeles
+    restart: unless-stopped
+    container_name: fantasy-court-redis
+
+
 volumes:
   fantasy_court_data:
+    driver: local
+  fantasy_court_redis_data:
     driver: local
