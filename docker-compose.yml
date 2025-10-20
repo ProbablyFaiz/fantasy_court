@@ -10,6 +10,8 @@ services:
       - DATA_ROOT=/data
       - RL_DEBUG=0
       - TZ=America/Los_Angeles
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - prod.env
     container_name: fantasy-court-celery
