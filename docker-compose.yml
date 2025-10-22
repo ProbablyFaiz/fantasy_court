@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    command: ["celery", "-A", "court.jobs.celery:celery_app", "worker", "--beat", "--loglevel=info"]
+    command: ["celery", "-A", "court.jobs.celery:celery_app", "worker", "--beat", "--loglevel=info", "--concurrency=1"]
     volumes:
       - fantasy_court_data:/data
     environment:
