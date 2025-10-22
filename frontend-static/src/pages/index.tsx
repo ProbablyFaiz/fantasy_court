@@ -165,26 +165,26 @@ export default function Home({ opinions, seasons }: HomeProps) {
         <title>Fantasy Court</title>
         <meta
           name="description"
-          content="Browse judicial opinions from the Fantasy Court podcast, the premier authority on fantasy football disputes and league controversies. Written opinions on trades, roster management, commissioner powers, and league rules."
+          content="Browse judicial opinions from Fantasy Court, a segment of The Ringer Fantasy Football Show. The premier authority on fantasy football disputes and league controversies. Written opinions on trades, roster management, commissioner powers, and league rules."
         />
         <meta
           property="og:title"
-          content="Fantasy Court - Judicial Opinions from the Fantasy Football Podcast"
+          content="Fantasy Court - Judicial Opinions from The Ringer Fantasy Football Show"
         />
         <meta
           property="og:description"
-          content="Browse judicial opinions from the Fantasy Court podcast, the premier authority on fantasy football disputes and league controversies."
+          content="Browse judicial opinions from Fantasy Court, a segment of The Ringer Fantasy Football Show. The premier authority on fantasy football disputes and league controversies."
         />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://fantasycourt.lexeme.dev/" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta
           name="twitter:title"
-          content="Fantasy Court - Judicial Opinions from the Fantasy Football Podcast"
+          content="Fantasy Court - Judicial Opinions from The Ringer Fantasy Football Show"
         />
         <meta
           name="twitter:description"
-          content="Browse judicial opinions from the Fantasy Court podcast, the premier authority on fantasy football disputes and league controversies."
+          content="Browse judicial opinions from Fantasy Court, a segment of The Ringer Fantasy Football Show. The premier authority on fantasy football disputes and league controversies."
         />
       </Head>
       <div className="max-w-4xl mx-auto px-6 py-12">
