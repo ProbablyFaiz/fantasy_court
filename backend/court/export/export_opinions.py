@@ -1,6 +1,7 @@
 """Export Fantasy Court opinions to static JSON files for frontend consumption."""
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -17,12 +18,21 @@ from court.db.session import get_session
 _DEFAULT_OUTPUT_DIR = rl.utils.io.get_data_path("export", "opinions")
 
 
+def fix_post_tag_apostrophes(text: str) -> str:
+    """Fix smartypants incorrectly using left quotes after tags instead of apostrophes.
+
+    When text like <span>don</span>'t appears, smartypants converts ' to left quote
+    instead of apostrophe because the tag interrupts the word.
+    """
+    return re.sub(r"(>)&#8216;([a-zA-Z])", r"\1&#8217;\2", text)
+
+
 def apply_smartypants(data: Any) -> Any:
     """Recursively apply smartypants to all HTML string fields in data structure."""
     if isinstance(data, dict):
         return {
             key: (
-                smartypants.smartypants(value)
+                fix_post_tag_apostrophes(smartypants.smartypants(value))
                 if isinstance(value, str)
                 and key
                 in (
