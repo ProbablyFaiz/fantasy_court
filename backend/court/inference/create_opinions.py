@@ -1001,13 +1001,17 @@ def main(model: str, concurrency: int):
         table.add_column("Authorship", style="magenta", max_width=50)
 
         # Fetch recently created opinions
-        recent_opinions: list[FantasyCourtOpinion] = db.execute(
-            sa.select(FantasyCourtOpinion)
-            .options(selectinload(FantasyCourtOpinion.case))
-            .where(FantasyCourtOpinion.provenance_id == provenance.id)
-            .order_by(FantasyCourtOpinion.created_at.desc())
-            .limit(10)
-        ).all()
+        recent_opinions: list[FantasyCourtOpinion] = (
+            db.execute(
+                sa.select(FantasyCourtOpinion)
+                .options(selectinload(FantasyCourtOpinion.case))
+                .where(FantasyCourtOpinion.provenance_id == provenance.id)
+                .order_by(FantasyCourtOpinion.created_at.desc())
+                .limit(10)
+            )
+            .scalars()
+            .all()
+        )
 
         for opinion in recent_opinions:
             case = opinion.case
