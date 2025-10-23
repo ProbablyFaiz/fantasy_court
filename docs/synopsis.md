@@ -30,7 +30,7 @@ These are fundamentally silly situations. The stakes are imaginary. The grievanc
 
 Each case receives the full treatment of an appellate court opinion:
 
-**Formal Case Captions**: "Alec v. Nick" | "In re. Roster Management During Wife's Labor" | "People v. Taysom Hill"
+**Formal Case Captions**: "Alec v. Nick" | "In re Roster Management During Wife's Labor" | "People v. Taysom Hill"
 
 **Docket Numbers**: Following real appellate conventions (YY-EEEE-N format): 25-0197-1, 24-0134-2
 
@@ -235,7 +235,7 @@ This ensures type safety and automatic validation across the entire stack.
 
 The most delightful technical aspect is watching the agent research precedent. When drafting an opinion about, say, whether a commissioner can trade with their father-in-law, the agent will:
 
-1. List past opinions and see titles like "Commiss'rs Duties v. Trading Privileges" and "In re. Conflict of Interest"
+1. List past opinions and see titles like "Commiss'rs Duties v. Trading Privileges" and "In re Conflict of Interest"
 2. Read those opinions in full to understand established doctrine
 3. Apply that doctrine to the current case
 4. Cite the earlier opinions using proper Bluebook signals

@@ -44,10 +44,10 @@ A concise, formal case title that captures the essence of the dispute. Follow th
 
 **Examples:**
 - "Alec v. Nick" (adversarial disputes between league members)
-- "In re. Roster Management During Wife's Labor" (petition-style for individual controversies or where party names are unclear)
+- "In re Roster Management During Wife's Labor" (petition-style for individual controversies or where party names are unclear)
 - "People v. Taysom Hill" (criminal-style for egregious global-scale fantasy football offenses or Fantasy Supreme Court)
 
-If a petitioner (e.g. named James) seeks relief from their league and is denied, and is effectively appealing the decision, we can think of it as an appeal from the league or Commissioner's administrative decision, such that the case caption would be "James v. League", or, if funnier, "James v. Commissioner". IMPORTANT: Prefer this adversarial style of caption whenever a petitioner's name is present over the "In re." descriptive style. However, in the labor example given below, because the petitioner is seeking an advisory opinion about an action he may take, the "In re." descriptive style is preferable since there isn't an active controversy between multiple parties.
+If a petitioner (e.g. named James) seeks relief from their league and is denied, and is effectively appealing the decision, we can think of it as an appeal from the league or Commissioner's administrative decision, such that the case caption would be "James v. League", or, if funnier, "James v. Commissioner". IMPORTANT: Prefer this adversarial style of caption whenever a petitioner's name is present over the "In re" descriptive style. However, in the labor example given below, because the petitioner is seeking an advisory opinion about an action he may take, the "In re" descriptive style is preferable since there isn't an active controversy between multiple parties.
 
 Do not include parentheticals in the case caption.
 
@@ -179,7 +179,7 @@ class CaseExtraction(BaseModel):
     )
     case_caption: str | None = Field(
         default=None,
-        description='Optional formal case title, e.g. "Alec v. Nick" or "In re. Roster Management"',
+        description='Optional formal case title, e.g. "Alec v. Nick" or "In re Roster Management"',
     )
     questions_presented_html: str | None = Field(
         default=None,

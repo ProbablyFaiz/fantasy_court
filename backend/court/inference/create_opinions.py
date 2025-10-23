@@ -157,7 +157,7 @@ The full text of the opinion with detailed legal reasoning.
 
 <p>This Court has long recognized a distinction between (1) permissible information-based advantages, and (2) impermissible coercion through threats. The former category includes advantages arising from superior research, attention, or even luck—trading away a player before injury news breaks, for instance. The latter involves using threats to compel favorable terms, particularly threats directed at interests beyond the fantasy league itself. See <span data-cite-docket="24-0142-1"><em>League v. Commissioner</em>, 24-0142-1 (2024)</span> (holding that psychological warfare threatening external relationships is impermissible).</p>
 
-<p>Petitioner's proposed conduct falls squarely in the second category. Threatening to disclose embarrassing information to a league member's spouse—thereby potentially damaging a family relationship—in exchange for favorable trade consideration constitutes duress. See <span data-cite-docket="23-0089-2"><em>In re. Collusion Allegations</em>, 23-0089-2 (2023)</span> (holding that agreements procured through threats are voidable regardless of substantive fairness). That, petitioner may not do.</p>
+<p>Petitioner's proposed conduct falls squarely in the second category. Threatening to disclose embarrassing information to a league member's spouse—thereby potentially damaging a family relationship—in exchange for favorable trade consideration constitutes duress. See <span data-cite-docket="23-0089-2"><em>In re Collusion Allegations</em>, 23-0089-2 (2023)</span> (holding that agreements procured through threats are voidable regardless of substantive fairness). That, petitioner may not do.</p>
 ```
 
 **Example conclusion with section break and disposition**:
@@ -206,22 +206,22 @@ The `data-cite-docket` attribute must contain the docket number (e.g., "25-0197-
   - Example: `Commissioners owe fiduciary duties to their leagues. <span data-cite-docket="25-0012-1"><em>Manager v. Commissioner</em>, 25-0012-1 (2025)</span>.`
 
 - **See**: Cited authority clearly supports the proposition but doesn't directly state it
-  - Example: `Threats that harm interests beyond the fantasy league itself are impermissible. See <span data-cite-docket="23-0089-2"><em>In re. Collusion Allegations</em>, 23-0089-2 (2023)</span>.`
+  - Example: `Threats that harm interests beyond the fantasy league itself are impermissible. See <span data-cite-docket="23-0089-2"><em>In re Collusion Allegations</em>, 23-0089-2 (2023)</span>.`
 
 - **See also**: Provides additional support; use after already citing direct authority
-  - Example: `See <span data-cite-docket="24-0142-1"><em>League v. Commissioner</em>, 24-0142-1 (2024)</span>; see also <span data-cite-docket="23-0089-2"><em>In re. Collusion Allegations</em>, 23-0089-2 (2023)</span>.`
+  - Example: `See <span data-cite-docket="24-0142-1"><em>League v. Commissioner</em>, 24-0142-1 (2024)</span>; see also <span data-cite-docket="23-0089-2"><em>In re Collusion Allegations</em>, 23-0089-2 (2023)</span>.`
 
 - **Cf.**: Cited authority supports proposition by analogy
-  - Example: `The same principle applies here. Cf. <span data-cite-docket="24-0156-2"><em>In re. Trade Veto</em>, 24-0156-2 (2024)</span> (applying similar reasoning in trade veto context).`
+  - Example: `The same principle applies here. Cf. <span data-cite-docket="24-0156-2"><em>In re Trade Veto</em>, 24-0156-2 (2024)</span> (applying similar reasoning in trade veto context).`
 
 - **But see**: Cited authority contradicts the proposition; acknowledge contrary precedent
-  - Example: `But see <span data-cite-docket="24-0098-1"><em>In re. Aggressive Tactics</em>, 24-0098-1 (2024)</span> (suggesting broader scope for permissible gamesmanship).`
+  - Example: `But see <span data-cite-docket="24-0098-1"><em>In re Aggressive Tactics</em>, 24-0098-1 (2024)</span> (suggesting broader scope for permissible gamesmanship).`
 
 - **But cf.**: Cited authority contradicts proposition by analogy
   - Example: `But cf. <span data-cite-docket="23-0156-1"><em>Manager v. League</em>, 23-0156-1 (2023)</span> (reaching different result under distinct factual circumstances).`
 
 **Examples with signals and holding parentheticals**:
-- `See <span data-cite-docket="24-0156-2"><em>In re. Trade Veto</em>, 24-0156-2 (2024)</span> (establishing three-factor test for collusion).`
+- `See <span data-cite-docket="24-0156-2"><em>In re Trade Veto</em>, 24-0156-2 (2024)</span> (establishing three-factor test for collusion).`
 - `Cf. <span data-cite-docket="25-0012-1"><em>Manager v. Commissioner</em>, 25-0012-1 (2025)</span> (holding that commissioners owe fiduciary duties).`
 
 **Citing Real Supreme Court Cases**: You may cite famous Supreme Court cases when they are directly on point and help develop the legal reasoning by analogy. Use standard case citation format without the `data-cite-docket` attribute. However, do NOT quote from these cases—paraphrase holdings and reasoning to avoid hallucination risk.

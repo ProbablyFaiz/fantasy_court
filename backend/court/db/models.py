@@ -138,7 +138,7 @@ class FantasyCourtCase(Base, IndexedTimestampMixin):
     fact_summary: Mapped[str] = mapped_column()
     """A summary of the facts of the case."""
     case_caption: Mapped[str | None] = mapped_column()
-    """A short caption for the case, e.g. "Alec v. Nick", "In re. roster management during wife's labor", "People v. Taysom Hill" """
+    """A short caption for the case, e.g. "Alec v. Nick", "In re roster management during wife's labor", "People v. Taysom Hill" """
     questions_presented_html: Mapped[str | None] = mapped_column()
     """The legal question(s) before the court."""
     procedural_posture: Mapped[str | None] = mapped_column()
