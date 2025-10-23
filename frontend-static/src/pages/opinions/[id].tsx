@@ -200,7 +200,11 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
               <span className="font-equity-caps text-foreground/80">
                 Procedural Posture:
               </span>{" "}
-              {opinion.case.procedural_posture}
+              <span
+                dangerouslySetInnerHTML={{
+                  __html: opinion.case.procedural_posture,
+                }}
+              />
             </div>
           )}
 

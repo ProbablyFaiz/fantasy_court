@@ -6,7 +6,7 @@ An official-seeming court website for *The Ringer Fantasy Football Show*'s Fanta
 
 - **uv** (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
 - **just** task runner (`uv tool install rust-just`)
-- **Node.js 18+**
+- **Node.js 22+**
 - **pnpm** (`npm install -g pnpm`)
 - **PostgreSQL**
 - **Redis**
@@ -180,7 +180,7 @@ See `court/pipeline/commands.py` for the full pipeline implementation.
 - [just](https://github.com/casey/just) for task automation
 - [pnpm](https://pnpm.io/) for frontend package management
 - [uv](https://docs.astral.sh/uv/) for Python dependency management
-- **Code Quality**: Pre-commit hooks with [Ruff](https://github.com/astral-sh/ruff) (Python) and [Biome](https://biomejs.dev/) (TypeScript/JavaScript)
+- Pre-commit hooks with [Ruff](https://github.com/astral-sh/ruff) (Python) and [Biome](https://biomejs.dev/) (TypeScript/JavaScript)
 
 **Production Deployment:**
 - Docker/Docker Compose for backend services
