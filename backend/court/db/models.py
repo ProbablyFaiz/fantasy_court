@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import html
 
 from sqlalchemy import ARRAY, ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
@@ -176,6 +177,13 @@ class FantasyCourtCase(Base, IndexedTimestampMixin):
     cited_cases: Mapped[list[CaseCitation]] = relationship(
         foreign_keys="CaseCitation.citing_case_id", back_populates="citing_case"
     )
+
+    @property
+    def case_caption_plain(self) -> str | None:
+        """Plain-text version of case_caption with HTML entities decoded, suitable for use in page titles and metadata."""
+        if self.case_caption is None:
+            return None
+        return html.unescape(self.case_caption)
 
 
 class FantasyCourtOpinion(Base, IndexedTimestampMixin):
