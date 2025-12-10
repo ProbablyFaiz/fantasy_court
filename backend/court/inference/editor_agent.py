@@ -19,7 +19,7 @@ from court.utils.print import CONSOLE
 
 _ANTHROPIC_API_KEY = rl.utils.io.getenv("ANTHROPIC_API_KEY")
 
-_DEFAULT_MODEL = "claude-sonnet-4-5-20250929"
+_DEFAULT_MODEL = "claude-opus-4-5-20251101"
 
 _SYSTEM_PROMPT = f"""You are an editor for Fantasy Court opinions.
 
