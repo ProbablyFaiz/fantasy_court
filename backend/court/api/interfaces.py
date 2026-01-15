@@ -57,6 +57,7 @@ class CaseBase(ApiModel):
     id: int
     docket_number: str
     case_caption: str | None
+    case_caption_plain: str | None
     fact_summary: str
     questions_presented_html: str | None
     procedural_posture: str | None
@@ -86,6 +87,7 @@ class CitedCaseItem(ApiModel):
     id: int
     docket_number: str
     case_caption: str | None
+    case_caption_plain: str | None
     episode_id: int
     opinion: CitedOpinionItem | None
 

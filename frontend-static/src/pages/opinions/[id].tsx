@@ -34,8 +34,8 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
   };
 
   // Create title and description for meta tags
-  const pageTitle = opinion.case.case_caption
-    ? `${opinion.case.case_caption} - Fantasy Court`
+  const pageTitle = opinion.case.case_caption_plain
+    ? `${opinion.case.case_caption_plain} - Fantasy Court`
     : "Opinion - Fantasy Court";
   const pageDescription = stripHtml(opinion.holding_statement_html).substring(
     0,
