@@ -44,10 +44,17 @@ def fetch_episodes(feed_url: str):
     is_flag=True,
     help="Show what would be downloaded without actually downloading",
 )
-def download_episodes(limit: int | None, dry_run: bool):
+@click.option(
+    "--concurrency",
+    "-c",
+    type=int,
+    default=download_to_bucket._DEFAULT_CONCURRENCY,
+    help="Number of episodes to download in parallel",
+)
+def download_episodes(limit: int | None, dry_run: bool, concurrency: int):
     """Download episode MP3s to S3 bucket for episodes without a bucket path.
 
     This command downloads MP3 files for episodes that have a canonical MP3 URL
     but no S3 bucket path, uploading them to the configured S3 bucket.
     """
-    download_to_bucket.main(limit, dry_run)
+    download_to_bucket.main(limit, dry_run, concurrency)

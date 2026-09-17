@@ -1,13 +1,28 @@
+import asyncio
+import tempfile
+import time
+from pathlib import Path
+
 import httpx
 import rl.utils.click as click
 import sqlalchemy as sa
-from rich.progress import Progress, TaskID
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    TextColumn,
+    TimeElapsedColumn,
+)
 from rich.table import Table
+from sqlalchemy.orm import Session
 
 from court.db.models import PodcastEpisode
 from court.db.session import get_session
 from court.utils import bucket
 from court.utils.print import CONSOLE
+
+_DEFAULT_CONCURRENCY = 8
+_CHUNK_SIZE = 256 * 1024
 
 
 def generate_bucket_path(episode: PodcastEpisode) -> str:
@@ -21,14 +36,31 @@ def generate_bucket_path(episode: PodcastEpisode) -> str:
     return f"episodes/{episode.guid}.mp3"
 
 
-def download_episode_mp3(
+class _Throughput:
+    """Tracks cumulative bytes downloaded across all concurrent streams."""
+
+    def __init__(self) -> None:
+        self.start = time.monotonic()
+        self.total_bytes = 0
+
+    def add(self, n: int) -> None:
+        self.total_bytes += n
+
+    def mb_per_s(self) -> float:
+        elapsed = time.monotonic() - self.start
+        return self.total_bytes / elapsed / 1e6 if elapsed > 0 else 0.0
+
+
+async def download_episode_mp3(
     episode: PodcastEpisode,
+    http: httpx.AsyncClient,
     s3_client: bucket.boto3.client,
-    progress: Progress,
-    task: TaskID,
+    throughput: _Throughput,
+    semaphore: asyncio.Semaphore,
+    tmp_dir: Path,
 ) -> bool:
     """
-    Download an episode's MP3 from canonical URL and upload to S3.
+    Stream an episode's MP3 from its canonical URL to disk, then upload it to S3.
 
     Returns:
         True if successful, False otherwise
@@ -39,42 +71,94 @@ def download_episode_mp3(
         )
         return False
 
-    try:
-        # Download from canonical URL with streaming
-        with httpx.stream(
-            "GET", episode.canonical_mp3_url, timeout=300.0, follow_redirects=True
-        ) as response:
-            response.raise_for_status()
+    async with semaphore:
+        tmp_path = tmp_dir / f"{episode.guid}.mp3"
+        try:
+            async with http.stream("GET", episode.canonical_mp3_url) as response:
+                response.raise_for_status()
+                with tmp_path.open("wb") as f:
+                    async for chunk in response.aiter_bytes(chunk_size=_CHUNK_SIZE):
+                        f.write(chunk)
+                        throughput.add(len(chunk))
 
-            # Get total size if available
-            total_size = int(response.headers.get("content-length", 0))
-            chunks = []
-
-            # Download with progress tracking
-            download_task = progress.add_task(
-                f"Downloading {episode.title[:40]}...",
-                total=total_size if total_size > 0 else None,
+            await asyncio.to_thread(
+                bucket.write_file, tmp_path, generate_bucket_path(episode), s3_client
             )
-
-            for chunk in response.iter_bytes(chunk_size=8192):
-                chunks.append(chunk)
-                progress.update(download_task, advance=len(chunk))
-
-            progress.remove_task(download_task)
-            mp3_data = b"".join(chunks)
-
-        # Generate S3 path and upload
-        s3_path = generate_bucket_path(episode)
-        bucket.write_file(mp3_data, s3_path, s3_client)
-
-        return True
-
-    except Exception as e:
-        CONSOLE.print(f"[red]ERROR:[/red] Failed to download {episode.title}: {e}")
-        return False
+            return True
+        except Exception as e:
+            CONSOLE.print(f"[red]ERROR:[/red] Failed to download {episode.title}: {e}")
+            return False
+        finally:
+            tmp_path.unlink(missing_ok=True)
 
 
-def main(limit: int | None = None, dry_run: bool = False):
+async def _download_all(
+    episodes: list[PodcastEpisode],
+    db: Session,
+    concurrency: int,
+) -> tuple[int, int]:
+    """Download all episodes concurrently, committing each bucket path as it lands."""
+    s3_client = bucket.get_bucket_client()
+    semaphore = asyncio.Semaphore(concurrency)
+    throughput = _Throughput()
+    successful = 0
+    failed = 0
+
+    with (
+        tempfile.TemporaryDirectory(prefix="court-mp3-") as tmp_dir_str,
+        Progress(
+            TextColumn("{task.description}"),
+            BarColumn(),
+            MofNCompleteColumn(),
+            TimeElapsedColumn(),
+            TextColumn("[cyan]{task.fields[speed]:.1f} MB/s"),
+            console=CONSOLE,
+        ) as progress,
+    ):
+        tmp_dir = Path(tmp_dir_str)
+        overall_task = progress.add_task(
+            "Downloading episodes", total=len(episodes), speed=0.0
+        )
+
+        async def refresh_speed() -> None:
+            while True:
+                progress.update(overall_task, speed=throughput.mb_per_s())
+                await asyncio.sleep(1)
+
+        speed_refresher = asyncio.create_task(refresh_speed())
+        try:
+            async with httpx.AsyncClient(timeout=300.0, follow_redirects=True) as http:
+
+                async def run_one(
+                    episode: PodcastEpisode,
+                ) -> tuple[PodcastEpisode, bool]:
+                    ok = await download_episode_mp3(
+                        episode, http, s3_client, throughput, semaphore, tmp_dir
+                    )
+                    return episode, ok
+
+                for coro in asyncio.as_completed([run_one(ep) for ep in episodes]):
+                    episode, ok = await coro
+                    if ok:
+                        episode.bucket_mp3_path = generate_bucket_path(episode)
+                        db.commit()
+                        successful += 1
+                    else:
+                        failed += 1
+                    progress.update(
+                        overall_task, advance=1, speed=throughput.mb_per_s()
+                    )
+        finally:
+            speed_refresher.cancel()
+
+    return successful, failed
+
+
+def main(
+    limit: int | None = None,
+    dry_run: bool = False,
+    concurrency: int = _DEFAULT_CONCURRENCY,
+):
     """Download episode MP3s to S3 bucket for episodes without a bucket path."""
     CONSOLE.print("\n[bold blue]Fetching episodes without bucket paths...[/bold blue]")
 
@@ -89,7 +173,7 @@ def main(limit: int | None = None, dry_run: bool = False):
         if limit:
             query = query.limit(limit)
 
-        episodes = db.execute(query).scalars().all()
+        episodes = list(db.execute(query).scalars().all())
 
         CONSOLE.print(
             f"[bold green]SUCCESS:[/bold green] Found [bold]{len(episodes)}[/bold] episodes to download\n"
@@ -120,30 +204,7 @@ def main(limit: int | None = None, dry_run: bool = False):
             CONSOLE.print()
             return
 
-        # Initialize S3 client
-        s3_client = bucket.get_bucket_client()
-
-        # Download and upload episodes
-        successful = 0
-        failed = 0
-
-        with Progress(console=CONSOLE) as progress:
-            overall_task = progress.add_task("Processing episodes", total=len(episodes))
-
-            for episode in episodes:
-                success = download_episode_mp3(
-                    episode, s3_client, progress, overall_task
-                )
-
-                if success:
-                    # Update database with bucket path
-                    episode.bucket_mp3_path = generate_bucket_path(episode)
-                    db.commit()
-                    successful += 1
-                else:
-                    failed += 1
-
-                progress.update(overall_task, advance=1)
+        successful, failed = asyncio.run(_download_all(episodes, db, concurrency))
 
         CONSOLE.print(
             f"\n[bold green]SUCCESS:[/bold green] Download complete: "
@@ -201,9 +262,16 @@ def main(limit: int | None = None, dry_run: bool = False):
     is_flag=True,
     help="Show what would be downloaded without actually downloading",
 )
-def cli(limit: int | None, dry_run: bool):
+@click.option(
+    "--concurrency",
+    "-c",
+    type=int,
+    default=_DEFAULT_CONCURRENCY,
+    help="Number of episodes to download in parallel",
+)
+def cli(limit: int | None, dry_run: bool, concurrency: int):
     """Download episode MP3s to S3 bucket for episodes without a bucket path."""
-    main(limit, dry_run)
+    main(limit, dry_run, concurrency)
 
 
 if __name__ == "__main__":

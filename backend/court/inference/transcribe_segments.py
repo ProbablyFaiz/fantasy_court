@@ -571,10 +571,7 @@ def main(concurrency: int, limit: int | None, dry_run: bool):
             .options(selectinload(FantasyCourtSegment.episode))
             .outerjoin(
                 EpisodeTranscript,
-                sa.and_(
-                    EpisodeTranscript.segment_id == FantasyCourtSegment.id,
-                    EpisodeTranscript.provenance_id == provenance.id,
-                ),
+                EpisodeTranscript.segment_id == FantasyCourtSegment.id,
             )
             .join(PodcastEpisode, FantasyCourtSegment.episode_id == PodcastEpisode.id)
             .where(

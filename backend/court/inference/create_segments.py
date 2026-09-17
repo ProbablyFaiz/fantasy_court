@@ -1,12 +1,12 @@
 """
-Create Fantasy Court segment records by analyzing podcast episodes with GPT-5-mini.
+Create Fantasy Court segment records by analyzing podcast episodes with GPT-5.6 Luna.
 
 This script identifies Fantasy Court segments within podcast episodes from "The Ringer Fantasy
 Football Show". Fantasy Court is a recurring segment where the hosts adjudicate fantasy football
 disputes and controversies brought by listeners, often featuring humorous debate about league
 rules, trade fairness, and player management decisions.
 
-The script uses GPT-5-mini to:
+The script uses GPT-5.6 Luna to:
 1. Determine if an episode contains a Fantasy Court segment
 2. Extract start/end timestamps from episode descriptions (which typically include mm:ss markers)
 3. Convert timestamps to seconds for storage
@@ -30,9 +30,9 @@ from court.utils.print import CONSOLE
 
 _OPENAI_API_KEY = rl.utils.io.getenv("OPENAI_API_KEY")
 
-_DEFAULT_MODEL = "gpt-5-mini"
+_DEFAULT_MODEL = "gpt-5.6-luna"
 _DEFAULT_CONCURRENCY = 16
-_CREATOR_NAME = "gpt-5-mini"
+_CREATOR_NAME = "gpt-5.6-luna"
 _TASK_NAME = "create_segments"
 _RECORD_TYPE = "fantasy_court_segments"
 
@@ -131,7 +131,7 @@ async def detect_fantasy_court_segment(
     model: str,
 ) -> FantasyCourtSegment | None:
     """
-    Use GPT-5-mini to detect Fantasy Court segment in an episode and create segment record.
+    Use GPT-5.6 Luna to detect Fantasy Court segment in an episode and create segment record.
 
     Args:
         client: Async OpenAI client
@@ -158,7 +158,7 @@ Description:
 
 Does this episode contain a Fantasy Court segment? If yes, extract the start and end timestamps."""
 
-    # Call GPT-5-mini with structured outputs
+    # Call GPT-5.6 Luna with structured outputs
     completion = await client.chat.completions.parse(
         model=model,
         messages=[
@@ -327,7 +327,7 @@ async def process_episodes_batch(
     help="Number of parallel requests to make",
 )
 def main(model: str, concurrency: int):
-    """Detect and create Fantasy Court segment records using GPT-5-mini."""
+    """Detect and create Fantasy Court segment records using GPT-5.6 Luna."""
     CONSOLE.print(
         f"\n[bold blue]Creating Fantasy Court segments using:[/bold blue] {model}"
     )

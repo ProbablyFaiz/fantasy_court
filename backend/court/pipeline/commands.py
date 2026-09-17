@@ -82,18 +82,11 @@ def run():
     for step_name, command in steps:
         CONSOLE.print(f"[cyan]Step:[/cyan] {step_name}")
         try:
-            result = subprocess.run(
-                command,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            CONSOLE.print(f"[green]✓[/green] {step_name} completed")
-            if result.stdout:
-                CONSOLE.print(f"[dim]{result.stdout}[/dim]")
+            # Output streams straight to the terminal so progress bars are visible
+            subprocess.run(command, check=True)
+            CONSOLE.print(f"[green]✓[/green] {step_name} completed\n")
         except subprocess.CalledProcessError as e:
-            CONSOLE.print(f"[red]✗[/red] {step_name} failed: {e}")
-            CONSOLE.print(f"[red]Error output:[/red]\n{e.stderr}")
+            CONSOLE.print(f"[red]✗[/red] {step_name} failed: {e}\n")
             # Continue despite errors to ensure other steps run
             continue
 
