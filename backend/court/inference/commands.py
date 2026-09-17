@@ -1,6 +1,7 @@
 """CLI commands for Fantasy Court inference operations."""
 
 import asyncio
+from pathlib import Path
 
 import anthropic
 import openai
@@ -15,7 +16,6 @@ from sqlalchemy.orm import Session, selectinload
 from court.db.models import (
     EpisodeTranscript,
     FantasyCourtCase,
-    FantasyCourtOpinion,
     FantasyCourtSegment,
     PodcastEpisode,
 )
@@ -24,7 +24,6 @@ from court.inference import create_cases as create_cases_module
 from court.inference import create_citations as create_citations_module
 from court.inference import create_opinions as create_opinions_module
 from court.inference import create_segments as create_segments_module
-from court.inference import editor_agent
 from court.inference import transcribe_segments as transcribe_segments_openai_module
 from court.inference import (
     transcribe_segments_assemblyai as transcribe_segments_module,
@@ -47,6 +46,7 @@ from court.inference.create_segments import (
     seconds_to_timestamp,
 )
 from court.inference.utils import get_or_create_provenance, should_save_prompt
+from court.law.commands import load_case_for_drafting
 from court.utils.print import CONSOLE
 
 
@@ -460,46 +460,29 @@ def extract_cases(segment_id: int, model: str, save: str):
     help="Claude model to use for opinion drafting",
 )
 @click.option(
+    "--workspace-dir",
+    "-w",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Keep the agent's workspace in this directory instead of a temp dir",
+)
+@click.option(
     "--save",
     type=click.Choice(["yes", "ask", "no"], case_sensitive=False),
     default="ask",
     help="Whether to save drafted opinion to database",
 )
-def draft_opinion(case_id: int, model: str, save: str):
-    """Draft a Fantasy Court opinion for a specific case using Claude.
+def draft_opinion(case_id: int, model: str, workspace_dir: Path | None, save: str):
+    """Draft a Fantasy Court opinion for one case with the drafting agent.
 
-    This command runs an AI agent that analyzes the case transcript, reviews
-    past opinions for precedent, and drafts a complete legal opinion with all
-    required fields. The opinion can optionally be saved to the database.
+    The agent works in a file workspace (see `court law materialize`), greps the
+    corpus of past opinions for precedent, drafts and revises the opinion, and
+    lints it. The result can optionally be saved to the database.
     """
     session: Session = get_session()
-
-    # Load the case with all required relationships
-    case = session.execute(
-        sa.select(FantasyCourtCase)
-        .where(FantasyCourtCase.id == case_id)
-        .options(
-            selectinload(FantasyCourtCase.episode),
-            selectinload(FantasyCourtCase.segment).selectinload(
-                FantasyCourtSegment.transcript
-            ),
-        )
-    ).scalar_one_or_none()
-
-    if not case:
-        raise click.ClickException(f"Case with ID {case_id} not found")
-
-    if not case.segment:
-        raise click.ClickException(f"Case {case_id} has no associated segment")
-
-    if not case.segment.transcript:
-        raise click.ClickException(
-            f"Case {case_id}'s segment has no transcript available"
-        )
-
+    case = load_case_for_drafting(session, case_id)
     episode = case.episode
 
-    # Display case info
     CONSOLE.print("\n[bold blue]Drafting opinion for case:[/bold blue]")
     CONSOLE.print(f"  [cyan]Case ID:[/cyan] {case.id}")
     CONSOLE.print(f"  [cyan]Docket Number:[/cyan] {case.docket_number}")
@@ -515,101 +498,42 @@ def draft_opinion(case_id: int, model: str, save: str):
         CONSOLE.print(f"  [cyan]Topics:[/cyan] {', '.join(case.case_topics)}")
     CONSOLE.print(f"  [cyan]Model:[/cyan] {model}\n")
 
-    # Create Anthropic client and draft opinion
-    client = anthropic.AsyncAnthropic()
-
-    CONSOLE.print("[bold yellow]Starting opinion drafting agent...[/bold yellow]")
-    CONSOLE.print(
-        "[dim]The agent will analyze the transcript, review precedent, and draft the opinion.[/dim]"
+    opinion = asyncio.run(
+        run_opinion_drafting_agent(session, model, case, workspace_dir)
     )
-    CONSOLE.print("[dim]Progress will be shown below as the agent works...[/dim]\n")
 
-    opinion = asyncio.run(run_opinion_drafting_agent(session, client, model, case))
-
-    # Display results
-    CONSOLE.print("[bold blue]Displaying drafted opinion:[/bold blue]\n")
-
-    # Create panels for each part of the opinion
-    CONSOLE.print(
-        Panel(
-            opinion.authorship_html,
-            title="[bold]Authorship[/bold]",
-            border_style="blue",
-        )
-    )
+    CONSOLE.print("\n[bold]Authorship[/bold]")
+    CONSOLE.print(opinion.authorship_html)
+    CONSOLE.print("\n[bold]Holding[/bold]")
+    CONSOLE.print(opinion.holding_statement_html)
+    CONSOLE.print("\n[bold]Reasoning Summary[/bold]")
+    CONSOLE.print(opinion.reasoning_summary_html)
+    CONSOLE.print("\n[bold]Opinion Body[/bold]")
+    CONSOLE.print(opinion.opinion_body_html)
     CONSOLE.print()
 
-    CONSOLE.print(
-        Panel(
-            opinion.holding_statement_html,
-            title="[bold]Holding[/bold]",
-            border_style="green",
-        )
-    )
-    CONSOLE.print()
-
-    CONSOLE.print(
-        Panel(
-            opinion.reasoning_summary_html,
-            title="[bold]Reasoning Summary[/bold]",
-            border_style="yellow",
-        )
-    )
-    CONSOLE.print()
-
-    # For the opinion body, show a preview
-    body_lines = opinion.opinion_body_html.split("\n")
-    body_preview = "\n".join(body_lines[:20])
-    if len(body_lines) > 20:
-        body_preview += f"\n\n[dim]... ({len(body_lines) - 20} more lines)[/dim]"
-
-    CONSOLE.print(
-        Panel(
-            body_preview,
-            title="[bold]Opinion Body (Preview)[/bold]",
-            border_style="magenta",
-        )
-    )
-    CONSOLE.print()
-
-    # Handle saving to database
     if should_save_prompt(save, "Save this opinion to the database?"):
-        # Check for existing opinion for this case
-        existing_opinion = session.execute(
-            sa.select(FantasyCourtOpinion).where(FantasyCourtOpinion.case_id == case_id)
-        ).scalar_one_or_none()
-
-        if existing_opinion:
+        if case.opinion is not None:
             CONSOLE.print(
-                f"\n[yellow]Found existing opinion for this case (Opinion ID {existing_opinion.id}).[/yellow]"
+                f"\n[yellow]Replacing existing opinion {case.opinion.id} for this case.[/yellow]\n"
             )
-            CONSOLE.print(
-                "[yellow]This will be deleted to avoid duplicates.[/yellow]\n"
-            )
-            session.delete(existing_opinion)
+            session.delete(case.opinion)
             session.flush()
 
-        # Get or create provenance record
         provenance = get_or_create_provenance(
             session,
             task_name="draft_opinion",
             creator_name=model,
             record_type="fantasy_court_opinions",
         )
-
-        # Assign provenance and save
         opinion.provenance_id = provenance.id
         session.add(opinion)
         session.commit()
-
         CONSOLE.print("\n[bold green]Saved opinion to database![/bold green]")
         CONSOLE.print(f"[cyan]Opinion ID:[/cyan] {opinion.id}\n")
     else:
         CONSOLE.print(
-            "\n[dim]Note: This opinion has not been saved to the database.[/dim]"
-        )
-        CONSOLE.print(
-            "[dim]To draft opinions for all cases, run: [blue]court inference create-opinions[/blue][/dim]\n"
+            "\n[dim]Note: This opinion has not been saved to the database.[/dim]\n"
         )
 
 
@@ -623,6 +547,3 @@ inference.add_command(create_cases_module.main, name="create-cases")
 inference.add_command(create_opinions_module.main, name="create-opinions")
 
 inference.add_command(create_citations_module.main, name="create-citations")
-
-# Register interactive editor agent
-inference.add_command(editor_agent.main, name="edit-opinion")

@@ -3,6 +3,7 @@ import rl.utils.click as click
 from court.export.commands import export
 from court.inference.commands import inference
 from court.ingest.commands import ingest
+from court.law.commands import law
 from court.pipeline.commands import pipeline
 
 
@@ -14,6 +15,7 @@ def cli():
 cli.add_command(export)
 cli.add_command(inference)
 cli.add_command(ingest)
+cli.add_command(law)
 cli.add_command(pipeline)
 
 

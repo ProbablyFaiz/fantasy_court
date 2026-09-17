@@ -76,6 +76,7 @@ Tests live in `backend/test/` and mirror the source layout:
 - Prefer full imports for lowercase (non-class, usually) symbols, e.g. `import tenacity ... @tenacity.retry` or `import tqdm ... tqdm.tqdm()`, and `from` imports for uppercase constants and classes, e.g. `from court.db.models import FantasyCourtCase`.
 - Lazy imports (that is, imports not at the top of the file) are ABSOLUTELY PROHIBITED, unless necessary to avoid a circular import.
 - LLM model IDs are module-level `_DEFAULT_MODEL` constants in `court/inference/*.py`, overridable via the `--model` CLI option. The Anthropic calls use adaptive thinking; do not add `budget_tokens` or forced `tool_choice`.
+- Opinion drafting (`court inference create-opinions` / `draft-opinion`) runs a headless Claude Code session via the Claude Agent SDK over a file workspace built by `court/law/workspace.py`: the case, transcript, a text/HTML dump of every past opinion, and an `opinion/` directory the agent writes. The style guide lives in `court/law/workspace_claude.md` and becomes the workspace's CLAUDE.md. `court law materialize`, `court law lint`, and `court law import` let you build a workspace, run `claude` in it yourself (or edit the HTML by hand), and write the result back.
 
 ### CLI Structure
 The CLI is registered in `pyproject.toml` as `court = "court.cli.main:cli"`. Invoke as `uv run court ...` from `backend/`. It follows a modular architecture:
