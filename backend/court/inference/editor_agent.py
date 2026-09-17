@@ -19,7 +19,7 @@ from court.utils.print import CONSOLE
 
 _ANTHROPIC_API_KEY = rl.utils.io.getenv("ANTHROPIC_API_KEY")
 
-_DEFAULT_MODEL = "claude-opus-4-5-20251101"
+_DEFAULT_MODEL = "claude-fable-5-1"
 
 _SYSTEM_PROMPT = f"""You are an editor for Fantasy Court opinions.
 
@@ -484,11 +484,11 @@ async def run_interactive_agent(
 
         # Agent loop: keep calling API until no more tool uses
         while True:
-            # Make API call with interleaved thinking and stream output
-            async with client.beta.messages.stream(
+            # Make API call with adaptive thinking and stream output
+            async with client.messages.stream(
                 model=model,
                 max_tokens=16000,
-                thinking={"type": "enabled", "budget_tokens": 10000},
+                thinking={"type": "adaptive", "display": "summarized"},
                 system=[
                     {
                         "type": "text",
@@ -502,7 +502,6 @@ async def run_interactive_agent(
                         "name": "str_replace_based_edit_tool",
                     }
                 ],
-                betas=["interleaved-thinking-2025-05-14"],
                 messages=messages,
             ) as stream:
                 # Track current content block being streamed

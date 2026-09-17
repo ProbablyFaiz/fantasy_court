@@ -22,9 +22,9 @@ from court.utils.print import CONSOLE
 
 _ANTHROPIC_API_KEY = rl.utils.io.getenv("ANTHROPIC_API_KEY")
 
-_DEFAULT_MODEL = "claude-opus-4-5-20251101"
+_DEFAULT_MODEL = "claude-fable-5-1"
 _DEFAULT_CONCURRENCY = 4
-_CREATOR_NAME = "claude-opus-4-5-20251101"
+_CREATOR_NAME = "claude-fable-5-1"
 _TASK_NAME = "create_opinions"
 _RECORD_TYPE = "fantasy_court_opinions"
 
@@ -644,13 +644,13 @@ Please draft a complete Fantasy Court opinion for this case. Remember to:
     while iteration < max_iterations:
         iteration += 1
 
-        # Make API call with interleaved thinking
+        # Make API call with adaptive thinking
         # We have to use the `stream` method because Claude API requires us
         #  to use streaming beyond a certain max_tokens limit.
-        async with client.beta.messages.stream(
+        async with client.messages.stream(
             model=model,
             max_tokens=24000,
-            thinking={"type": "enabled", "budget_tokens": 16000},
+            thinking={"type": "adaptive", "display": "summarized"},
             system=[
                 {
                     "type": "text",
@@ -659,7 +659,6 @@ Please draft a complete Fantasy Court opinion for this case. Remember to:
                 }
             ],
             tools=_OPINION_AGENT_TOOLS,
-            betas=["interleaved-thinking-2025-05-14"],
             messages=messages,
         ) as stream:
             async for _ in stream:

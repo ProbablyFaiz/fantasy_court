@@ -22,9 +22,9 @@ from court.inference.utils import get_or_create_provenance
 
 _ANTHROPIC_API_KEY = rl.utils.io.getenv("ANTHROPIC_API_KEY")
 
-_DEFAULT_MODEL = "claude-opus-4-5-20251101"
+_DEFAULT_MODEL = "claude-fable-5-1"
 _DEFAULT_CONCURRENCY = 8
-_CREATOR_NAME = "claude-opus-4-5-20251101"
+_CREATOR_NAME = "claude-fable-5-1"
 _TASK_NAME = "create_cases"
 _RECORD_TYPE = "fantasy_court_cases"
 
@@ -263,7 +263,6 @@ Please extract all distinct Fantasy Court cases from this segment. Remember that
                 "cache_control": {"type": "ephemeral"},
             },
         ],
-        thinking={"type": "enabled", "budget_tokens": 4096},
         messages=[{"role": "user", "content": user_message}],
         tools=[
             {
