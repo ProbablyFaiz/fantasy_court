@@ -26,9 +26,10 @@ Work with the corpus the way you would with any codebase: grep for topics, doctr
 
 1. Read `case.md` and `transcript.txt` carefully. Understand the hosts' ultimate conclusion (who prevailed, what relief was granted or denied), the key reasoning and legal principles they invoked, any entertaining asides or hypotheticals worth incorporating, and which justices agreed or dissented.
 2. Skim `corpus/INDEX.md` and grep the corpus to identify two to four precedents that are potentially relevant: similar topics or legal issues, applicable frameworks or tests, useful analogies or distinctions. Read those in full.
-3. Write all four files in `opinion/`.
-4. Then re-read your draft with a critical eye, as an editor would, and revise it in place. Tighten clunky sentences, cut filler, check that every cited precedent actually supports the proposition, make sure the humor lands dry and deadpan rather than winking. One real revision pass makes a large difference.
-5. Run `./lint` and fix anything it reports. Finish by writing a one-paragraph summary of the opinion you drafted and what you revised.
+3. Decide who writes, then check what that justice (and anyone writing separately) has been building. Grep the corpus for their name to find their prior majorities, concurrences, and dissents, and read enough to know their recurring commitments. See "Doctrinal Projects" below.
+4. Write all four files in `opinion/`.
+5. Then re-read your draft with a critical eye, as an editor would, and revise it in place. Tighten clunky sentences, cut filler, check that every cited precedent actually supports the proposition, make sure the humor lands dry and deadpan rather than winking. One real revision pass makes a large difference.
+6. Run `./lint` and fix anything it reports. Finish by writing a one-paragraph summary of the opinion you drafted and what you revised.
 
 Your opinion must faithfully reflect the conclusion and reasoning articulated by the justices in the podcast episode, while exercising appropriate creative license in formalizing the legal analysis and developing the Fantasy Court's common law.
 
@@ -37,6 +38,22 @@ Your opinion must faithfully reflect the conclusion and reasoning articulated by
 Over the course of the existence of this project (it began in 2025), there have been profound advances in AI capabilities. For this reason, previous opinions in the collection may not be up to the quality that you are now capable of; you are likely significantly more rhetorically capable and able to drive forward the comedic ambitions of this project. As such, you should feel free to drive the bit forward in new and creative ways, not being constrained to previous habits. Drive forward the legal humor, where you can bring in classic doctrines and legal principles like abstention, justiciability, contract law principles, torts, federal courts doctrines, and so on, without breaking character or making the opinion overly verbose or technical. If the justices can each develop their own doctrinal projects and styles over time that they unspool in both majority and separate opinions, that is extraordinary. Get creative not just on an individual level, but also the higher-level goals of the project viewed as a whole. The point is not that every opinion should play the same notes. Look at recent opinions so you know how to diversify your style. Write with style and dry humor, and take the bit to new heights by remaining in character with increasingly greater technical competence.
 
 Oh, and please don't allow runaway word-count inflation.
+
+## Doctrinal Projects
+
+The Court is three people, and the body of law should read like it. Each justice has recurring commitments: a doctrine they keep reaching for, a method they favor, a line of cases they authored and keep extending, a hobbyhorse they ride in separate writings. These are not assigned here; they are discovered in the corpus and advanced by you. Treat them as a first-class part of the job, not decoration.
+
+Before you write:
+- Grep `corpus/*.txt` for the authoring justice's name and skim what they have written for the Court and separately. Note the tests they created, the analogies they favor, the positions they have staked out, and anything they have promised to revisit.
+- Do the same for any justice writing separately. A concurrence or dissent is the natural vehicle for a justice's project: a rule they would adopt, a precedent they think was wrong, a framework they keep proposing until it commands a majority.
+
+While you write:
+- Have the author extend their own line. Cite their prior opinions by name, build on the tests they set out, and keep their voice consistent with how they have written before. Consistency of doctrine matters more than consistency of jokes.
+- Let projects collide. When the author's approach and a separate writer's approach point in different directions, say so, and let the separate writer press their case. A concurrence that says "I join the Court's opinion but write separately to note, again, that ..." is exactly right when the corpus supports it.
+- Seed new projects when the case invites one. If a justice takes a strong or idiosyncratic position on the podcast that the corpus has not yet formalized, formalize it and plant a flag: name the principle, state the test, and leave a thread for future opinions to pick up.
+- Stay grounded. A project has to be traceable to what that host actually argues on the show, and the majority still has to reach the hosts' result.
+
+If you find yourself writing an opinion any of the three could have written, you have not done this step.
 
 ## Required Files
 
@@ -279,6 +296,7 @@ When the authorship indicates a justice filed a dissenting or concurring opinion
    - Developing new legal frameworks where none exist
    - Adding color, wit, and judicial personality to the prose
    - Drawing analogies to real legal principles (contracts, torts, constitutional law, etc.)
+   - Advancing each justice's doctrinal projects (see above) in majorities and separate writings
 
    But remain grounded in what the hosts actually discussed.
 
