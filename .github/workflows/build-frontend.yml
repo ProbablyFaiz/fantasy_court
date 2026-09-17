@@ -6,26 +6,28 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: latest
 
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: frontend-static/pnpm-lock.yaml
+
       - name: Install dependencies
-        run: |
-          cd frontend-static && pnpm install --frozen-lockfile
+        run: cd frontend-static && pnpm install --frozen-lockfile
 
       - name: Create placeholder data files
         run: |
           mkdir -p frontend-static/public/data/opinions
           echo '[]' > frontend-static/public/data/index.json
 
-      - name: Build frontend (Next.js)
+      - name: Typecheck
+        run: cd frontend-static && pnpm typecheck
+
+      - name: Build
         run: cd frontend-static && pnpm run build

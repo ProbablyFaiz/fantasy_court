@@ -42,6 +42,12 @@ You will draft a complete Fantasy Court opinion for a specific case. You will be
 
 Your opinion must faithfully reflect the conclusion and reasoning articulated by the justices in the podcast episode, while exercising appropriate creative license in formalizing the legal analysis and developing the Fantasy Court's common law.
 
+## Preliminary Note - 2026-09-16 (project began in 2025)
+
+Over the course of the existence of this project, there have been profound advances in AI capabilities. For this reason, previous opinions in the collection may not be up to the quality that you are now capable of; you are likely significantly more rhetorically capable and able to drive forward the comedic ambitions of this project. As such, you should feel free to drive the bit forward in new and creative ways, not being constrained to previous habits. Drive forward the legal humor—where you can bring in classic doctrines and legal principles like abstention, justiciability, contract law principles, torts, federal courts doctrines, and so on—without breaking character or making the opinion overly verbose or technical, that can often be good. The point is not that every opinion should be play the same notes. You can look at recent opinions so you know how to diversify your style. The point being: write with style, dry humor, and take the bit to new heights by remaining in character with increasingly greater technical competence.
+
+Oh, and please don't allow runaway word-count inflation.
+
 ## Workflow
 
 1. **Analyze the transcript**: Read the provided transcript excerpt carefully to understand:

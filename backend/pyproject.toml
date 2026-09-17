@@ -43,11 +43,12 @@ dev = [
     "ipykernel>=7.0.1",
     "ipython>=8.27.0",
     "pgcli>=4.3.0",
-    "pre-commit>=3.8.0",
+    "prek>=0.3.1",
     "pytest>=8.4.1",
     "pytest-asyncio>=1.0.0",
     "pytest-postgresql>=7.0.2",
-    "ruff>=0.12.0",
+    "ruff>=0.14.4",
+    "ty>=0.0.34",
 ]
 
 [tool.uv.sources]
@@ -87,3 +88,19 @@ markers = [
     "slow: marks tests as slow",
     "integration: marks tests as integration tests",
 ]
+
+[tool.ty.rules]
+possibly-missing-attribute = "ignore"
+# Pre-existing violations, downgraded so CI passes. Promote back to "error" as they are fixed.
+invalid-argument-type = "warn"
+unresolved-attribute = "warn"
+invalid-type-form = "warn"
+not-subscriptable = "warn"
+invalid-assignment = "warn"
+unsupported-operator = "warn"
+invalid-await = "warn"
+no-matching-overload = "warn"
+invalid-return-type = "warn"
+
+[tool.ty.src]
+exclude = ["test/**", "court/db/migrations/versions/**", "court/experiments/**"]

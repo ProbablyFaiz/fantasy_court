@@ -1,12 +1,13 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.0.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.14/schema.json",
   "linter": {
     "enabled": true,
     "rules": {
       "recommended": true,
       "correctness": {
         "noUnusedImports": "error",
-        "useExhaustiveDependencies": "off"
+        "useExhaustiveDependencies": "off",
+        "useUniqueElementIds": "off"
       },
       "suspicious": {
         "noExplicitAny": "off",
@@ -20,15 +21,9 @@
       },
       "a11y": {
         "useButtonType": "off"
-      },
-      "nursery": {
-        "useUniqueElementIds": "off"
       }
     },
     "includes": [
-      "frontend/**/*",
-      "!frontend/src/**/*.gen.ts",
-      "!frontend/node_modules/**/*",
       "frontend-static/**/*",
       "!frontend-static/node_modules/**/*",
       "!frontend-static/src/**/*.gen.ts"
@@ -40,13 +35,24 @@
       "allowTrailingCommas": true
     }
   },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    },
+    "includes": [
+      "frontend-static/**/*",
+      "!frontend-static/node_modules/**/*",
+      "!frontend-static/src/**/*.gen.ts",
+      "!**/out/*",
+      "!**/.next/*"
+    ]
+  },
   "formatter": {
     "indentStyle": "space",
     "indentWidth": 2,
     "includes": [
-      "frontend/**/*",
-      "!frontend/src/**/*.gen.ts",
-      "!frontend/node_modules/**/*",
       "frontend-static/**/*",
       "!frontend-static/node_modules/**/*",
       "!frontend-static/src/**/*.gen.ts"
@@ -54,5 +60,14 @@
   },
   "javascript": {
     "jsxRuntime": "transparent"
+  },
+  "css": {
+    "parser": {
+      "cssModules": true,
+      "tailwindDirectives": true
+    }
+  },
+  "files": {
+    "ignoreUnknown": true
   }
 }

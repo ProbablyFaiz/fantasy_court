@@ -1,0 +1,42 @@
+name: CI Backend
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      # pytest-postgresql spawns its own server; it just needs pg_ctl on PATH.
+      - name: Expose PostgreSQL binaries
+        run: echo "/usr/lib/postgresql/$(ls /usr/lib/postgresql | sort -V | tail -1)/bin" >> "$GITHUB_PATH"
+
+      - name: Install dependencies
+        run: cd backend && uv sync --locked --dev
+
+      - name: Typecheck
+        run: cd backend && uv run ty check --exit-zero-on-warning
+
+      - name: Test
+        run: cd backend && uv run pytest
+        env:
+          DATA_ROOT: /tmp
+          FANTASY_COURT_ENV: dev
+          FANTASY_COURT_PG_HOST: localhost
+          FANTASY_COURT_PG_PORT: 5432
+          FANTASY_COURT_PG_DB: fantasy_court
+          FANTASY_COURT_PG_ADMIN_USER: postgres
+          FANTASY_COURT_PG_ADMIN_PASSWORD: postgres
+          FANTASY_COURT_PG_API_USER: postgres
+          FANTASY_COURT_PG_API_PASSWORD: postgres
+          FANTASY_COURT_REDIS_HOST: localhost
+          FANTASY_COURT_REDIS_PORT: 6379
+          FANTASY_COURT_REDIS_DB: 0

@@ -42,7 +42,7 @@ RUN npm install -g pnpm
 # Install wrangler globally for Cloudflare Pages deployments
 RUN npm install -g wrangler
 
-COPY --from=builder --chown=app:app /app /app
+COPY --from=builder /app /app
 
 # Copy frontend-static for Next.js builds
 COPY frontend-static /frontend-static
