@@ -1,34 +1,53 @@
 services:
   celery:
+    container_name: fantasy-court-celery
     build:
       context: .
       dockerfile: backend/Dockerfile
-    command: ["celery", "-A", "court.jobs.celery:celery_app", "worker", "--beat", "--loglevel=info", "--concurrency=1"]
+    command: ["celery", "-A", "court.jobs.celery:celery_app", "worker", "--loglevel=info", "--concurrency=1"]
     volumes:
       - fantasy_court_data:/data
+    networks:
+      - default
+      - infra
     environment:
       - DATA_ROOT=/data
       - RL_DEBUG=0
+      - FANTASY_COURT_ENV=prod
       - TZ=America/Los_Angeles
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     env_file:
       - prod.env
-    container_name: fantasy-court-celery
     restart: unless-stopped
 
-  redis:
-    image: redis:7-alpine
+  celery-beat:
+    container_name: fantasy-court-celery-beat
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["celery", "-A", "court.jobs.celery:celery_app", "beat", "--loglevel=info"]
     volumes:
-      - fantasy_court_redis_data:/data
+      - fantasy_court_data:/data
+    networks:
+      - default
+      - infra
     environment:
+      - DATA_ROOT=/data
+      - RL_DEBUG=0
+      - FANTASY_COURT_ENV=prod
       - TZ=America/Los_Angeles
+    env_file:
+      - prod.env
     restart: unless-stopped
-    container_name: fantasy-court-redis
 
+networks:
+  # Shared with db_services. Owned by that stack (created with
+  # `docker network create infra`); referenced here as external so
+  # `docker compose down` won't try to delete it. Postgres and Redis are
+  # reachable on it as `postgres` and `redis`.
+  infra:
+    external: true
+    name: infra
 
 volumes:
   fantasy_court_data:
-    driver: local
-  fantasy_court_redis_data:
     driver: local
