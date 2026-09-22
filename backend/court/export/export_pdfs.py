@@ -67,7 +67,6 @@ class PdfOpinion(pydantic.BaseModel):
     episode_title: str | None
     segment_times: str | None
     facts: list[Block]
-    questions: list[Block]
     holding: list[Block]
     reasoning: list[Block]
     authorship: list[Block]
@@ -243,8 +242,12 @@ def build_pdf_opinion(opinion: OpinionRead) -> PdfOpinion:
         else None,
         episode_title=html.unescape(case.episode.title) if case.episode else None,
         segment_times=segment_times if case.episode else None,
-        facts=html_to_blocks(case.fact_summary),
-        questions=html_to_blocks(case.questions_presented_html),
+        # Fact summaries are plain text; blank lines separate paragraphs.
+        facts=[
+            block
+            for paragraph in case.fact_summary.split("\n\n")
+            for block in html_to_blocks(paragraph)
+        ],
         holding=holding,
         reasoning=reasoning,
         authorship=html_to_blocks(opinion.authorship_html),

@@ -45,7 +45,7 @@
 // "HG v. Commissioner" in caps, with the "v." in italic lowercase.
 #let caption-caps(caption) = caption.split(" v. ").map(caps).join([ #emph[v.] ])
 
-#let short-rule = line(length: 3.5em, stroke: 0.5pt)
+#let short-rule = line(length: 4.5em, stroke: 0.5pt)
 
 // Each opinion drops a marker so the running head knows whose pages these are.
 #let segment(head) = [#metadata(head)<segment>]
@@ -72,7 +72,7 @@
     columns: (1fr, auto, 1fr),
     [], caption-caps(data.caption), align(right)[#number],
   )
-  v(0.1em)
+  v(0.35em)
   align(center, head)
 }
 
@@ -104,7 +104,7 @@
     #v(0.2em)
     #short-rule
     #v(0.1em)
-    No.~#data.docket_number
+    #text(size: 9.5pt)[No.~#data.docket_number]
     #v(0.1em)
     #short-rule
     #v(0.4em)
@@ -154,12 +154,6 @@
 #v(1em)
 
 #show-blocks(data.facts)
-#if data.questions.len() == 1 and data.questions.first().kind == "p" {
-  par[#emph[Question presented:] #inline(data.questions.first().children)]
-} else if data.questions.len() > 0 {
-  par(emph[Questions presented:])
-  show-blocks(data.questions)
-}
 #show-blocks(data.holding)
 #show-blocks(data.reasoning)
 #v(0.6em)

@@ -28,7 +28,7 @@ Work with the corpus the way you would with any codebase: grep for topics, doctr
 2. Skim `corpus/INDEX.md` and grep the corpus to identify two to four precedents that are potentially relevant: similar topics or legal issues, applicable frameworks or tests, useful analogies or distinctions. Read those in full.
 3. Decide who writes, then check what that justice (and anyone writing separately) has been building. Grep the corpus for their name to find their prior majorities, concurrences, and dissents, and read enough to know their recurring commitments. See "Doctrinal Projects" below.
 4. Write all four files in `opinion/`.
-5. Then re-read your draft with a critical eye, as an editor would, and revise it in place. Tighten clunky sentences, cut filler, check that every cited precedent actually supports the proposition, make sure the humor lands dry and deadpan rather than winking. One real revision pass makes a large difference.
+5. Then re-read your draft with a critical eye, as an editor would, and revise it in place. Tighten clunky sentences, cut filler, check that every cited precedent actually supports the proposition, look for places where quoting a precedent's own words would beat paraphrasing it (see "Quoting Fantasy Court Precedent"), grep-check every quotation against the corpus, make sure the humor lands dry and deadpan rather than winking. One real revision pass makes a large difference.
 6. Run `./lint` and fix anything it reports. Finish by writing a one-paragraph summary of the opinion you drafted and what you revised.
 
 Your opinion must faithfully reflect the conclusion and reasoning articulated by the justices in the podcast episode, while exercising appropriate creative license in formalizing the legal analysis and developing the Fantasy Court's common law.
@@ -224,6 +224,13 @@ The `data-cite-docket` attribute must contain the docket number of an opinion th
 
 - **But cf.**: Cited authority contradicts proposition by analogy
   - Example: `But cf. <span data-cite-docket="23-0156-1"><em>Manager v. League</em>, 23-0156-1 (2023)</span> (reaching different result under distinct factual circumstances).`
+
+**Quoting Fantasy Court Precedent**: Quote the Court's past opinions, not just cite them. A body of law feels real when its best lines keep coming back: the maxim a later panel repeats, the metaphor that becomes shorthand for a whole doctrine. When a precedent you rely on has a memorable line on point (a crisp statement of the rule, a vivid image, a quotable maxim), quote it instead of paraphrasing it. Most opinions should quote two or three lines from precedent; do not quote every citation, and prefer lines with some life in them over boilerplate.
+
+- Quote verbatim. Copy the text from `corpus/<docket>.txt` and confirm it with `grep -F "<quoted text>" corpus/<docket>.txt` before you finish. Never quote from memory or tidy a quotation up.
+- Keep quotations short: a sentence or a phrase, woven into your own sentence, not a block quote.
+- Cite the quoted opinion right after the quotation. The full citation with `data-cite-docket` goes at the first mention of a case; later references use the short form (`<em>Dakota</em>, 25-0717-3`).
+- A precedent's line can be turned: extended, narrowed, or applied to facts its authors never imagined. That is often where the best humor is.
 
 **Citing Real Supreme Court Cases**: You may cite famous Supreme Court cases when they are directly on point and help develop the legal reasoning by analogy. Use standard case citation format without the `data-cite-docket` attribute. However, do NOT quote from these cases; paraphrase holdings and reasoning to avoid hallucination risk.
 

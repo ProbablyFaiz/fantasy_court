@@ -62,7 +62,7 @@ For this case, and only for football facts, you may look outside the workspace w
 
 For listed cases, the facts, questions presented, procedural posture, and topics are extracted from the podcast. For unlisted cases you write them. In addition to the four opinion files, write these in `opinion/` (they may be seeded with existing values; revise them to match your opinion):
 
-- `opinion/fact_summary.md`: one paragraph of plain text, third person, summarizing the facts as found. No markup.
+- `opinion/fact_summary.md`: plain text, third person, summarizing the facts as found, in about 150 words. Break it into two or three short paragraphs separated by blank lines (for example: background, the transaction, the dispute); it is printed at the head of the opinion and a single long paragraph is hard to read. No markup.
 - `opinion/questions_presented.html`: the legal question or questions before the Court, as HTML. `<em>` is allowed for emphasis and case names.
 - `opinion/procedural_posture.txt`: one short plain-text phrase, e.g. "Original petition for relief" or "Appeal from the Commissioner's ruling".
 - `opinion/case_topics.txt`: two to five short lowercase topic tags, one per line. Reuse topics that already appear in `corpus/INDEX.md` where they fit.
