@@ -63,6 +63,11 @@
   }
   let marks = query(<segment>).filter(m => m.location().page() <= number)
   let head = if marks.len() > 0 { marks.last().value } else { [] }
+  // An opinion's first page opens with its own caption block; number only.
+  if marks.len() > 0 and marks.last().location().page() == number {
+    align(right)[#number]
+    return
+  }
   grid(
     columns: (1fr, auto, 1fr),
     [], caption-caps(data.caption), align(right)[#number],
