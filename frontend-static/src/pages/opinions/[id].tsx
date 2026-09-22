@@ -1,3 +1,4 @@
+import { FileDown } from "lucide-react";
 import type { GetStaticPaths, GetStaticProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
@@ -41,7 +42,7 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
     0,
     155,
   );
-  const opinionUrl = `https://fantasycourt.lexeme.dev/opinions/${opinion.case.docket_number}`;
+  const opinionUrl = `https://fantasycourt.pages.dev/opinions/${opinion.case.docket_number}`;
 
   // Create a set of docket numbers that have opinions (for citation linking)
   const validCitationDockets = useMemo(() => {
@@ -137,14 +138,21 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
         <meta name="twitter:description" content={pageDescription} />
       </Head>
       <div className="max-w-2xl mx-auto px-6 py-12">
-        {/* Header with back link */}
-        <div className="mb-8">
+        {/* Header with back link and PDF download */}
+        <div className="mb-8 flex items-center justify-between">
           <Link
             href="/"
             className="font-equity-caps text-sm text-accent hover:underline"
           >
             ← Back to Opinions
           </Link>
+          <a
+            href={`/opinions/${opinion.case.docket_number}.pdf`}
+            className="font-equity-caps text-sm text-accent hover:underline inline-flex items-center gap-1"
+          >
+            <FileDown className="w-4 h-4" aria-hidden="true" />
+            PDF
+          </a>
         </div>
 
         {/* Case Header */}

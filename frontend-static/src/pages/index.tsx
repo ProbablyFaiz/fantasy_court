@@ -176,7 +176,7 @@ export default function Home({ opinions, seasons }: HomeProps) {
           content="Browse judicial opinions from Fantasy Court, a segment of The Ringer Fantasy Football Show. The premier authority on fantasy football disputes and league controversies."
         />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://fantasycourt.lexeme.dev/" />
+        <meta property="og:url" content="https://fantasycourt.pages.dev/" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta
           name="twitter:title"

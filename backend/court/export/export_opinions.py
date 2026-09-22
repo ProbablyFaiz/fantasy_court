@@ -48,6 +48,14 @@ def apply_smartypants(opinion: OpinionItem | OpinionRead):
     return opinion
 
 
+def remove_stale(directory: Path, suffix: str, dockets: set[str]) -> None:
+    """Delete exported files for opinions that no longer exist, so the static
+    build never renders a leftover from an older export."""
+    for path in directory.glob(f"*.{suffix}"):
+        if path.stem not in dockets:
+            path.unlink()
+
+
 def select_opinions() -> sa.Select[tuple[FantasyCourtOpinion]]:
     """All opinions, newest first, with everything OpinionRead serializes loaded."""
     return (
@@ -130,6 +138,7 @@ def export_opinions(output_dir: Path) -> None:
 
         pbar.set_postfix({"docket": opinion_read.case.docket_number})
 
+    remove_stale(opinions_dir, "json", {o.case.docket_number for o in opinions})
     print(f"Exported {len(opinions)} opinions to {output_dir}")
     print(f"  - index.json: {len(opinion_items)} opinion items")
     print(

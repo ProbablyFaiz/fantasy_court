@@ -20,7 +20,11 @@ from sqlalchemy.orm import Session
 
 from court.api.interfaces import OpinionRead
 from court.db.session import get_session
-from court.export.export_opinions import apply_smartypants, select_opinions
+from court.export.export_opinions import (
+    apply_smartypants,
+    remove_stale,
+    select_opinions,
+)
 
 _DEFAULT_OUTPUT_DIR = rl.utils.io.get_data_path("export", "pdfs")
 _DEFAULT_FONT_DIR = Path(__file__).parent / "fonts"
@@ -288,5 +292,7 @@ def export_pdfs(output_dir: Path, font_dir: Path) -> None:
         docket = opinion_read.case.docket_number
         pbar.set_postfix({"docket": docket})
         render_pdf(compiler, opinion_read, output_dir / f"{docket}.pdf")
+
+    remove_stale(output_dir, "pdf", {o.case.docket_number for o in opinions})
 
     print(f"Typeset {len(opinions)} opinions to {output_dir}")
