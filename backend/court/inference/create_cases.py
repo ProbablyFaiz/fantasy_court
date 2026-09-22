@@ -133,7 +133,7 @@ Provide the approximate start and end time (in seconds, relative to the episode 
 
 2. **Use Modern Legal Language:** Imitate contemporary federal courts (Supreme Court, Circuit Courts) circa 2025, not archaic 1800s English common law. Avoid overly technical or antiquated terms like "parturient" when "spouse" or "wife giving birth" would be clear and natural. Latin phrases used in modern practice (e.g., force majeure) are fine.
 
-3. **Be Specific:** Include specific details from the transcript - player names, scores, dates, league context. Precision enhances both the legal gravitas and the comedy.
+3. **Be Specific:** Include specific details from the transcript - player names, scores, dates, league context. Precision enhances both the legal gravitas and the comedy. The transcript is auto-generated and may misspell names (e.g. "Travis Kelsey" for Travis Kelce); use the correct spelling of NFL players' and other public figures' names.
 
 4. **Ground Analysis in Transcript:** Review what the petitioner actually asks or disputes. For example:
    - If transcript shows: "is blackmail legal in the eyes of fantasy court?" → Your QP should focus on the legality of blackmail

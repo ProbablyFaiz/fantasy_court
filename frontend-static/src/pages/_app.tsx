@@ -1,5 +1,4 @@
 import "@/styles/globals.css";
-import "@/styles/audio-player.css";
 import type { AppProps } from "next/app";
 import Layout from "@/components/Layout";
 

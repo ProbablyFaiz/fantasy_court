@@ -182,6 +182,7 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
             {opinion.case.episode.bucket_mp3_public_url && (
               <div className="mt-2">
                 <CaseAudioPlayer
+                  key={opinion.case.docket_number}
                   audioUrl={opinion.case.episode.bucket_mp3_public_url}
                   startTime={opinion.case.start_time_s}
                   endTime={opinion.case.end_time_s}
