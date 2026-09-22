@@ -124,16 +124,27 @@ class FantasyCourtCase(Base, IndexedTimestampMixin):
     __tablename__ = "fantasy_court_cases"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    episode_id: Mapped[int] = mapped_column(ForeignKey("podcast_episodes.id"))
-    segment_id: Mapped[int] = mapped_column(ForeignKey("fantasy_court_segments.id"))
+    episode_id: Mapped[int | None] = mapped_column(ForeignKey("podcast_episodes.id"))
+    """None for unlisted cases, which are filed directly rather than heard on the podcast."""
+    segment_id: Mapped[int | None] = mapped_column(
+        ForeignKey("fantasy_court_segments.id")
+    )
     provenance_id: Mapped[int] = mapped_column(ForeignKey("provenances.id"))
 
     docket_number: Mapped[str] = mapped_column(index=True, unique=True)
     """The last two digits of the year of the episode's publication,
     followed by the zero-padded 4-digit ID of the episode, followed by a 1-indexed sequential number
-    on how many cases into the episode this is. Example: 25-0197-1, 25-0197-2, for episode 197 published in 2025."""
-    start_time_s: Mapped[float] = mapped_column()
-    end_time_s: Mapped[float] = mapped_column()
+    on how many cases into the episode this is. Example: 25-0197-1, 25-0197-2, for episode 197 published in 2025.
+    Unlisted cases use a miscellaneous docket, M in place of the episode: 26-M-1, 26-M-2."""
+    start_time_s: Mapped[float | None] = mapped_column()
+    end_time_s: Mapped[float | None] = mapped_column()
+
+    unlisted: Mapped[bool] = mapped_column(default=False, server_default="false")
+    """Unlisted cases are exported but left out of the site index and the corpus of listed cases."""
+    record_text: Mapped[str | None] = mapped_column()
+    """For unlisted cases, the written record (the parties' accounts, league rules, chat logs) in place of a transcript."""
+    exhibit_paths: Mapped[list[str] | None] = mapped_column(ARRAY(String))
+    """Bucket paths of exhibits (PDFs, images) filed with an unlisted case."""
 
     fact_summary: Mapped[str] = mapped_column()
     """A summary of the facts of the case."""
@@ -146,8 +157,10 @@ class FantasyCourtCase(Base, IndexedTimestampMixin):
     case_topics: Mapped[list[str] | None] = mapped_column(ARRAY(String))
     """Categorical tags like "corrupt dealing", "scoring dispute", "retroactive substitution", "waiver wire", "blackmail"."""
 
-    episode: Mapped[PodcastEpisode] = relationship(back_populates="fantasy_court_cases")
-    segment: Mapped[FantasyCourtSegment] = relationship(
+    episode: Mapped[PodcastEpisode | None] = relationship(
+        back_populates="fantasy_court_cases"
+    )
+    segment: Mapped[FantasyCourtSegment | None] = relationship(
         back_populates="fantasy_court_cases"
     )
     provenance: Mapped[Provenance] = relationship()
@@ -176,6 +189,17 @@ class FantasyCourtCase(Base, IndexedTimestampMixin):
     cited_cases: Mapped[list[CaseCitation]] = relationship(
         foreign_keys="CaseCitation.citing_case_id", back_populates="citing_case"
     )
+
+    @property
+    def decided_date(self) -> datetime.datetime:
+        """The episode's publication date, or the filing date for unlisted cases."""
+        if self.episode is not None:
+            return self.episode.pub_date
+        return self.created_at
+
+    @property
+    def exhibit_public_urls(self) -> list[str]:
+        return [bucket.get_public_url(path) for path in self.exhibit_paths or []]
 
 
 class FantasyCourtOpinion(Base, IndexedTimestampMixin):

@@ -61,14 +61,17 @@ class CaseBase(ApiModel):
     questions_presented_html: str | None
     procedural_posture: str | None
     case_topics: list[str] | None
-    start_time_s: float
-    end_time_s: float
+    start_time_s: float | None
+    end_time_s: float | None
+    unlisted: bool
+    decided_date: datetime
+    exhibit_public_urls: list[str]
 
 
 class CaseItem(CaseBase):
     """Case in list views or as related object."""
 
-    episode: EpisodeItem
+    episode: EpisodeItem | None
 
 
 # Opinion interfaces - defined early to avoid circular imports
@@ -86,14 +89,14 @@ class CitedCaseItem(ApiModel):
     id: int
     docket_number: str
     case_caption: str | None
-    episode_id: int
+    episode_id: int | None
     opinion: CitedOpinionItem | None
 
 
 class CaseRead(CaseBase):
     """Full case with episode and opinion."""
 
-    episode: EpisodeItem
+    episode: EpisodeItem | None
     opinion: OpinionItem | None
     cases_cited: list[CitedCaseItem]
     cases_citing: list[CitedCaseItem]

@@ -29,7 +29,7 @@ def run():
     5. Extracts cases from segments
     6. Drafts opinions for cases
     7. Creates citations between opinions
-    8. Exports opinions to JSON
+    8. Exports opinions to JSON and typesets them as PDFs
     9. Builds Next.js static site
     10. Deploys to Cloudflare Pages
     """
@@ -74,6 +74,16 @@ def run():
                 "opinions",
                 "--output-dir",
                 str(frontend_path / "public" / "data"),
+            ],
+        ),
+        (
+            "Typesetting opinion PDFs",
+            [
+                "court",
+                "export",
+                "pdfs",
+                "--output-dir",
+                str(frontend_path / "public" / "opinions"),
             ],
         ),
     ]

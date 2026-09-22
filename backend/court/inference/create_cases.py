@@ -526,7 +526,7 @@ def main(model: str, concurrency: int):
             table.add_row(
                 case.docket_number,
                 case.case_caption or "(no caption)",
-                case.episode.title,
+                case.episode.title if case.episode else "",
             )
 
         console.print(table)

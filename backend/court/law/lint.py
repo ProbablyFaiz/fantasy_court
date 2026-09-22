@@ -11,11 +11,11 @@ from pathlib import Path
 import bs4
 import pydantic
 
-from court.law.workspace import OPINION_FILES, html_to_text
+from court.law.workspace import CASE_FILES, OPINION_FILES, html_to_text, read_meta
 
 _ALLOWED_P_CLASSES = {"part-header", "section-break", "disposition", "opinion-break"}
 _ALLOWED_INLINE_TAGS = {"em", "b"}
-_DOCKET_RE = re.compile(r"^\d{2}-\d{4}-\d+$")
+_DOCKET_RE = re.compile(r"^\d{2}-(\d{4}|M)-\d+$")
 _MIN_BODY_WORDS = 500
 _MAX_BODY_WORDS = 2200
 
@@ -138,7 +138,15 @@ def lint_workspace(workspace: Path) -> LintResult:
         else ""
         for filename in OPINION_FILES
     }
-    return lint_opinion_files(files, known_dockets(workspace))
+    result = lint_opinion_files(files, known_dockets(workspace))
+    if read_meta(workspace).unlisted:
+        for filename in CASE_FILES:
+            path = opinion_dir / filename
+            if not path.exists() or not path.read_text().strip():
+                result.errors.append(
+                    f"{filename}: empty or missing; unlisted cases need their case fields written"
+                )
+    return result
 
 
 def main(argv: list[str]) -> int:

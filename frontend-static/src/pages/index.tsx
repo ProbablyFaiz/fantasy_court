@@ -22,7 +22,7 @@ function formatCaseCaption(caption: string) {
   return `<em class="font-equity">${formatted}</em>`;
 }
 
-// Calculate season based on pub_date
+// Calculate season based on the decision date
 // Season year is determined by the June 1 cutoff (June 1, 2025 - May 31, 2026 is "2025 season")
 function getSeason(pubDate: string): number {
   const date = new Date(pubDate);
@@ -98,7 +98,7 @@ export default function Home({ opinions, seasons }: HomeProps) {
     return opinions.filter((opinion) => {
       // Season filter
       if (selectedSeason !== null) {
-        const season = getSeason(opinion.case.episode.pub_date);
+        const season = getSeason(opinion.case.decided_date);
         if (season !== selectedSeason) return false;
       }
 
@@ -121,8 +121,8 @@ export default function Home({ opinions, seasons }: HomeProps) {
           stripHtml(opinion.case.questions_presented_html),
           opinion.case.procedural_posture,
           opinion.case.case_topics?.join(" "),
-          opinion.case.episode.title,
-          stripHtml(opinion.case.episode.description_html),
+          opinion.case.episode?.title,
+          stripHtml(opinion.case.episode?.description_html ?? null),
           stripHtml(opinion.authorship_html),
           stripHtml(opinion.holding_statement_html),
           stripHtml(opinion.reasoning_summary_html),
@@ -282,7 +282,7 @@ export default function Home({ opinions, seasons }: HomeProps) {
                       ) : (
                         "Untitled Case"
                       )}{" "}
-                      ({new Date(opinion.case.episode.pub_date).getFullYear()})
+                      ({new Date(opinion.case.decided_date).getFullYear()})
                     </h3>
 
                     {/* Docket Number and Episode */}
@@ -290,17 +290,19 @@ export default function Home({ opinions, seasons }: HomeProps) {
                       <div className="font-equity-caps">
                         No. {opinion.case.docket_number}
                       </div>
-                      <div>
-                        <em>{opinion.case.episode.title}</em> (
-                        {new Date(
-                          opinion.case.episode.pub_date,
-                        ).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                        )
-                      </div>
+                      {opinion.case.episode && (
+                        <div>
+                          <em>{opinion.case.episode.title}</em> (
+                          {new Date(
+                            opinion.case.episode.pub_date,
+                          ).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                          )
+                        </div>
+                      )}
                     </div>
 
                     {/* Authorship */}
@@ -414,7 +416,7 @@ export const getStaticProps: GetStaticProps<HomeProps> = async () => {
   // Calculate all unique seasons from opinions
   const seasonsSet = new Set<number>();
   opinions.forEach((opinion) => {
-    const season = getSeason(opinion.case.episode.pub_date);
+    const season = getSeason(opinion.case.decided_date);
     seasonsSet.add(season);
   });
 

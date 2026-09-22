@@ -110,7 +110,7 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
   }, [validCitationDockets, router]);
 
   const handleCopyCitation = async () => {
-    const year = new Date(opinion.case.episode.pub_date).getFullYear();
+    const year = new Date(opinion.case.decided_date).getFullYear();
     const citation = `${opinion.case.case_caption || "Untitled Case"}, No. ${opinion.case.docket_number} (${year})`;
 
     await navigator.clipboard.writeText(citation);
@@ -129,8 +129,9 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
         <meta property="og:url" content={opinionUrl} />
         <meta
           property="article:published_time"
-          content={opinion.case.episode.pub_date}
+          content={opinion.case.decided_date}
         />
+        {opinion.case.unlisted && <meta name="robots" content="noindex" />}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={pageDescription} />
@@ -158,7 +159,7 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
             ) : (
               "Untitled Case"
             )}{" "}
-            ({new Date(opinion.case.episode.pub_date).getFullYear()})
+            ({new Date(opinion.case.decided_date).getFullYear()})
           </h1>
 
           <div className="text-base text-foreground/70 space-y-2">
@@ -166,30 +167,34 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
               No. {opinion.case.docket_number}
             </div>
             <div>
-              <em>{opinion.case.episode.title}</em> (
-              {new Date(opinion.case.episode.pub_date).toLocaleDateString(
-                "en-US",
-                {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                },
-              )}
+              {opinion.case.episode ? (
+                <em>{opinion.case.episode.title}</em>
+              ) : (
+                <em>Miscellaneous Docket</em>
+              )}{" "}
+              (
+              {new Date(opinion.case.decided_date).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
               )
             </div>
 
             {/* Audio Player */}
-            {opinion.case.episode.bucket_mp3_public_url && (
-              <div className="mt-2">
-                <CaseAudioPlayer
-                  key={opinion.case.docket_number}
-                  audioUrl={opinion.case.episode.bucket_mp3_public_url}
-                  startTime={opinion.case.start_time_s}
-                  endTime={opinion.case.end_time_s}
-                  episodeTitle={opinion.case.episode.title}
-                />
-              </div>
-            )}
+            {opinion.case.episode?.bucket_mp3_public_url &&
+              opinion.case.start_time_s !== null &&
+              opinion.case.end_time_s !== null && (
+                <div className="mt-2">
+                  <CaseAudioPlayer
+                    key={opinion.case.docket_number}
+                    audioUrl={opinion.case.episode.bucket_mp3_public_url}
+                    startTime={opinion.case.start_time_s}
+                    endTime={opinion.case.end_time_s}
+                    episodeTitle={opinion.case.episode.title}
+                  />
+                </div>
+              )}
           </div>
         </header>
 
@@ -246,13 +251,19 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
                 <em className="font-equity">Untitled Case</em>
               )}
               , No. {opinion.case.docket_number} (
-              {new Date(opinion.case.episode.pub_date).getFullYear()})
+              {new Date(opinion.case.decided_date).getFullYear()})
               <button
                 onClick={handleCopyCitation}
                 className="ml-3 text-accent hover:text-accent/80 transition-colors font-equity-caps text-xs"
               >
                 {copied ? "Copied!" : "Copy"}
               </button>
+              <a
+                href={`/opinions/${opinion.case.docket_number}.pdf`}
+                className="ml-3 text-accent hover:text-accent/80 transition-colors font-equity-caps text-xs"
+              >
+                PDF
+              </a>
             </div>
           </div>
 
@@ -269,6 +280,30 @@ export default function OpinionPage({ opinion }: OpinionPageProps) {
                     className="font-equity-caps text-xs px-2 py-1 bg-accent/10 text-accent rounded-sm"
                   >
                     {topic}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Exhibits */}
+          {opinion.case.exhibit_public_urls.length > 0 && (
+            <div className="mt-8 pt-6 border-t border-border/30">
+              <div className="font-equity-caps text-sm text-foreground/60 mb-3">
+                Exhibits
+              </div>
+              <div className="text-sm text-foreground/70">
+                {opinion.case.exhibit_public_urls.map((url, idx) => (
+                  <span key={url}>
+                    {idx > 0 && "; "}
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-accent hover:underline transition-colors"
+                    >
+                      Exhibit {String.fromCharCode(65 + idx)}
+                    </a>
                   </span>
                 ))}
               </div>
@@ -322,19 +357,22 @@ export const getStaticPaths: GetStaticPaths = async () => {
   const fs = await import("node:fs/promises");
   const path = await import("node:path");
 
-  const indexPath = path.join(process.cwd(), "public", "data", "index.json");
+  // Read the opinions directory rather than index.json, which omits unlisted opinions
+  const opinionsDir = path.join(process.cwd(), "public", "data", "opinions");
 
-  let opinions: Array<{ case: { docket_number: string } }> = [];
+  let dockets: string[] = [];
 
   try {
-    const data = await fs.readFile(indexPath, "utf-8");
-    opinions = JSON.parse(data);
+    const files = await fs.readdir(opinionsDir);
+    dockets = files
+      .filter((file) => file.endsWith(".json"))
+      .map((file) => file.replace(/\.json$/, ""));
   } catch (error) {
-    console.error("Failed to load opinions index:", error);
+    console.error("Failed to list opinions:", error);
   }
 
-  const paths = opinions.map((opinion) => ({
-    params: { id: opinion.case.docket_number },
+  const paths = dockets.map((docket) => ({
+    params: { id: docket },
   }));
 
   return {

@@ -48,25 +48,12 @@ def apply_smartypants(opinion: OpinionItem | OpinionRead):
     return opinion
 
 
-def export_opinions(output_dir: Path) -> None:
-    """Export all opinions to JSON files for static site generation.
-
-    Creates:
-        - index.json: List of OpinionItem objects with metadata
-        - opinions/{docket_number}.json: Full OpinionRead for each opinion
-    """
-    session: Session = get_session()
-
-    # Create output directories
-    output_dir.mkdir(parents=True, exist_ok=True)
-    opinions_dir = output_dir / "opinions"
-    opinions_dir.mkdir(exist_ok=True)
-
-    # Query all opinions with eager loading for related data
-    query = (
+def select_opinions() -> sa.Select[tuple[FantasyCourtOpinion]]:
+    """All opinions, newest first, with everything OpinionRead serializes loaded."""
+    return (
         sa.select(FantasyCourtOpinion)
         .join(FantasyCourtOpinion.case)
-        .join(FantasyCourtCase.episode)
+        .outerjoin(FantasyCourtCase.episode)
         .options(
             selectinload(FantasyCourtOpinion.case).selectinload(
                 FantasyCourtCase.episode
@@ -78,13 +65,42 @@ def export_opinions(output_dir: Path) -> None:
             .selectinload(FantasyCourtCase.cases_citing)
             .selectinload(FantasyCourtCase.opinion),
         )
-        .order_by(PodcastEpisode.pub_date.desc())
+        .order_by(
+            sa.func.coalesce(
+                PodcastEpisode.pub_date, FantasyCourtCase.created_at
+            ).desc()
+        )
     )
 
-    opinions = session.execute(query).scalars().all()
+
+def export_opinions(output_dir: Path) -> None:
+    """Export all opinions to JSON files for static site generation.
+
+    Creates:
+        - index.json: List of OpinionItem objects with metadata, listed opinions only
+        - opinions/{docket_number}.json: Full OpinionRead for each opinion, listed or not
+
+    Unlisted opinions are reachable by URL but never appear in the index or in a
+    listed opinion's "cited by" list.
+    """
+    session: Session = get_session()
+
+    # Create output directories
+    output_dir.mkdir(parents=True, exist_ok=True)
+    opinions_dir = output_dir / "opinions"
+    opinions_dir.mkdir(exist_ok=True)
+
+    opinions = session.execute(select_opinions()).scalars().all()
+    unlisted_case_ids = {
+        opinion.case.id for opinion in opinions if opinion.case.unlisted
+    }
 
     # Export index.json with OpinionItem models
-    opinion_items = [OpinionItem.model_validate(opinion) for opinion in opinions]
+    opinion_items = [
+        OpinionItem.model_validate(opinion)
+        for opinion in opinions
+        if not opinion.case.unlisted
+    ]
     for opinion_item in opinion_items:
         apply_smartypants(opinion_item)
 
@@ -101,6 +117,12 @@ def export_opinions(output_dir: Path) -> None:
     for opinion in pbar:
         opinion_read = OpinionRead.model_validate(opinion)
         apply_smartypants(opinion_read)
+        if not opinion.case.unlisted:
+            opinion_read.case.cases_citing = [
+                citing
+                for citing in opinion_read.case.cases_citing
+                if citing.id not in unlisted_case_ids
+            ]
 
         opinion_path = opinions_dir / f"{opinion_read.case.docket_number}.json"
         with opinion_path.open("w") as f:
@@ -110,4 +132,6 @@ def export_opinions(output_dir: Path) -> None:
 
     print(f"Exported {len(opinions)} opinions to {output_dir}")
     print(f"  - index.json: {len(opinion_items)} opinion items")
-    print(f"  - opinions/: {len(opinions)} full opinions")
+    print(
+        f"  - opinions/: {len(opinions)} full opinions ({len(unlisted_case_ids)} unlisted)"
+    )

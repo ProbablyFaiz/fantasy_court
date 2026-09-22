@@ -41,12 +41,24 @@ export type CaseItem = {
     /**
      * Start Time S
      */
-    start_time_s: number;
+    start_time_s: number | null;
     /**
      * End Time S
      */
-    end_time_s: number;
-    episode: EpisodeItem;
+    end_time_s: number | null;
+    /**
+     * Unlisted
+     */
+    unlisted: boolean;
+    /**
+     * Decided Date
+     */
+    decided_date: string;
+    /**
+     * Exhibit Public Urls
+     */
+    exhibit_public_urls: Array<string>;
+    episode: EpisodeItem | null;
 };
 
 /**
@@ -86,12 +98,24 @@ export type CaseRead = {
     /**
      * Start Time S
      */
-    start_time_s: number;
+    start_time_s: number | null;
     /**
      * End Time S
      */
-    end_time_s: number;
-    episode: EpisodeItem;
+    end_time_s: number | null;
+    /**
+     * Unlisted
+     */
+    unlisted: boolean;
+    /**
+     * Decided Date
+     */
+    decided_date: string;
+    /**
+     * Exhibit Public Urls
+     */
+    exhibit_public_urls: Array<string>;
+    episode: EpisodeItem | null;
     opinion: OpinionItemOutput | null;
     /**
      * Cases Cited
@@ -124,7 +148,7 @@ export type CitedCaseItem = {
     /**
      * Episode Id
      */
-    episode_id: number;
+    episode_id: number | null;
     opinion: CitedOpinionItem | null;
 };
 

@@ -142,7 +142,9 @@ def list_cases(
     total = db.execute(count_query).scalar() or 0
 
     # Apply pagination and ordering
-    query = query.join(PodcastEpisode).order_by(PodcastEpisode.pub_date.desc())
+    query = query.outerjoin(PodcastEpisode).order_by(
+        sa.func.coalesce(PodcastEpisode.pub_date, FantasyCourtCase.created_at).desc()
+    )
     query = query.offset((page - 1) * limit).limit(limit)
     cases = db.execute(query).scalars().all()
 
@@ -204,8 +206,12 @@ def list_opinions(
 
     # Apply pagination and ordering
     query = (
-        query.join(PodcastEpisode)
-        .order_by(PodcastEpisode.pub_date.desc())
+        query.outerjoin(PodcastEpisode)
+        .order_by(
+            sa.func.coalesce(
+                PodcastEpisode.pub_date, FantasyCourtCase.created_at
+            ).desc()
+        )
         .offset((page - 1) * limit)
         .limit(limit)
     )
@@ -248,8 +254,8 @@ def read_opinion_html(
             "request": {},  # Required by Jinja2Templates but not used in template
             "case_caption": case.case_caption or "(No Caption)",
             "docket_number": case.docket_number,
-            "episode_title": episode.title,
-            "episode_date": episode.pub_date.strftime("%B %d, %Y"),
+            "episode_title": episode.title if episode is not None else "Unlisted",
+            "episode_date": case.decided_date.strftime("%B %d, %Y"),
             "authorship_html": opinion.authorship_html,
             "holding_statement_html": opinion.holding_statement_html,
             "reasoning_summary_html": opinion.reasoning_summary_html,

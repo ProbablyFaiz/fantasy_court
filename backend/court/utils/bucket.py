@@ -37,13 +37,23 @@ def get_full_s3_path(path: str):
     return f"{BUCKET_NAME}/{path}"
 
 
-def write_file(input_data: Path | bytes, s3_path: str, client: boto3.client) -> None:
+def write_file(
+    input_data: Path | bytes,
+    s3_path: str,
+    client: boto3.client,
+    content_type: str | None = None,
+) -> None:
+    extra_args = {"ContentType": content_type} if content_type else None
     if isinstance(input_data, Path):
         with input_data.open("rb") as input_file:
-            client.upload_fileobj(input_file, BUCKET_NAME, s3_path)
+            client.upload_fileobj(
+                input_file, BUCKET_NAME, s3_path, ExtraArgs=extra_args
+            )
     else:  # input_data is bytes
         with io.BytesIO(input_data) as input_stream:
-            client.upload_fileobj(input_stream, BUCKET_NAME, s3_path)
+            client.upload_fileobj(
+                input_stream, BUCKET_NAME, s3_path, ExtraArgs=extra_args
+            )
 
 
 def read_file(s3_path: str, client: boto3.client) -> bytes:

@@ -52,7 +52,7 @@ _CASE_TIMEOUT_S = 1800
 
 _DRAFT_PROMPT = """Draft the Fantasy Court opinion for the case in this workspace.
 
-Read CLAUDE.md first; it is the complete style guide and workflow. Read case.md and transcript.txt, research precedent in corpus/, write the four files in opinion/, do a genuine revision pass on your draft, and run ./lint until it reports no errors. When you are done, reply with a short summary of the opinion and what you changed in revision."""
+Read CLAUDE.md first; it is the complete style guide and workflow. Read case.md and the record of the case, research precedent in corpus/, write the files in opinion/, do a genuine revision pass on your draft, and run ./lint until it reports no errors. When you are done, reply with a short summary of the opinion and what you changed in revision."""
 
 _LINT_FIX_PROMPT = """./lint still reports errors on opinion/:
 
@@ -151,8 +151,9 @@ async def run_opinion_drafting_agent(
 ) -> FantasyCourtOpinion:
     """Draft an opinion for a case and return it (not yet added to the session).
 
-    The case must have its episode and segment (with transcript) loaded. If
-    workspace_dir is None, a temporary directory is used and discarded.
+    The case must have its episode and segment (with transcript) loaded, unless
+    it is unlisted, in which case the case fields the agent wrote are set on the
+    case. If workspace_dir is None, a temporary directory is used and discarded.
     """
     label = case.docket_number
     with tempfile.TemporaryDirectory(prefix=f"court-{label}-") as tmp:
@@ -169,7 +170,9 @@ async def run_opinion_drafting_agent(
             model=model,
             permission_mode="bypassPermissions",
             setting_sources=["project"],
-            disallowed_tools=["WebFetch", "WebSearch"],
+            # Listed cases are decided on the transcript; unlisted cases have no
+            # hosts, so the agent may look up football facts on the web.
+            disallowed_tools=[] if case.unlisted else ["WebFetch", "WebSearch"],
             max_turns=_MAX_TURNS,
             effort=_EFFORT,
             env=_agent_env(),
@@ -194,6 +197,10 @@ async def run_opinion_drafting_agent(
         if result.warnings:
             CONSOLE.print(f"[yellow]{label} lint warnings:[/yellow]\n{result.render()}")
 
+        if case.unlisted:
+            case_fields = workspace_module.read_case_field_files(workspace)
+            for attr, value in case_fields.items():
+                setattr(case, attr, value)
         fields = workspace_module.read_opinion_files(workspace)
         return FantasyCourtOpinion(
             case_id=case.id,

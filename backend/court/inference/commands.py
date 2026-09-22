@@ -489,11 +489,19 @@ def draft_opinion(case_id: int, model: str, workspace_dir: Path | None, save: st
     CONSOLE.print(
         f"  [cyan]Caption:[/cyan] {case.case_caption or '(no caption provided)'}"
     )
-    CONSOLE.print(f"  [cyan]Episode:[/cyan] {episode.title}")
-    CONSOLE.print(f"  [cyan]Published:[/cyan] {episode.pub_date.strftime('%B %d, %Y')}")
-    CONSOLE.print(
-        f"  [cyan]Case Time:[/cyan] {seconds_to_timestamp(case.start_time_s)} - {seconds_to_timestamp(case.end_time_s)}"
-    )
+    if episode is None or case.start_time_s is None or case.end_time_s is None:
+        CONSOLE.print(
+            f"  [cyan]Unlisted:[/cyan] filed {case.decided_date.strftime('%B %d, %Y')}, "
+            f"{len(case.exhibit_paths or [])} exhibit(s)"
+        )
+    else:
+        CONSOLE.print(f"  [cyan]Episode:[/cyan] {episode.title}")
+        CONSOLE.print(
+            f"  [cyan]Published:[/cyan] {episode.pub_date.strftime('%B %d, %Y')}"
+        )
+        CONSOLE.print(
+            f"  [cyan]Case Time:[/cyan] {seconds_to_timestamp(case.start_time_s)} - {seconds_to_timestamp(case.end_time_s)}"
+        )
     if case.case_topics:
         CONSOLE.print(f"  [cyan]Topics:[/cyan] {', '.join(case.case_topics)}")
     CONSOLE.print(f"  [cyan]Model:[/cyan] {model}\n")

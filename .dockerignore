@@ -22,5 +22,6 @@ frontend-static/.next/
 frontend-static/out/
 frontend-static/.wrangler/
 frontend-static/public/data/
+frontend-static/public/opinions/
 *.code-workspace
 .envrc

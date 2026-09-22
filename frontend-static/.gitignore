@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# opinion PDFs written by `court export pdfs`
+/public/opinions/
