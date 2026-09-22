@@ -25,7 +25,7 @@ There are no hosts whose conclusion you must follow. Justice Gorbanzo decides th
 
 - Draw facts about the league and the parties only from `record.md` and the exhibits. Do not invent facts, scores, messages, or league rules. Facts about the NFL itself may also come from `./fantasypros` and web search (below). Where the parties' accounts conflict, resolve the conflict as a fact-finder and say how you resolved it.
 - Cite the record specifically, in ordinary legal style and plain text with no special markup: "Ex. A, at 3" for page 3 of Exhibit A, or "Record" for `record.md`.
-- The parties are members of a private league. Refer to them as the record does.
+- The parties are members of a private league. Refer to them by first name only, never by surname, in the opinion, the case fields, and the caption (e.g. "Faiz v. League", not "Surani v. League"). If two people share a first name, add a last initial ("Joshua C." and "Joshua A."). Team names may be used as they appear.
 
 ## FantasyPros Data
 
