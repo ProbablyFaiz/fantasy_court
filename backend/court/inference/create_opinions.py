@@ -73,6 +73,9 @@ def _agent_env() -> dict[str, str]:
         # Server-side context management is not available to every org;
         # the CLI otherwise requests it for models that support it.
         "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "1",
+        # The Docker worker runs as root, and the CLI refuses bypassPermissions
+        # under root unless told it is sandboxed.
+        "IS_SANDBOX": "1",
     }
     # The CLI lets ANTHROPIC_API_KEY take precedence over the claude.ai login,
     # which bills the API instead of the subscription. Hide it when a login
